@@ -46,6 +46,11 @@ export default function ContactPage() {
         <p className="luxury-muted mt-5 text-center text-base leading-8 sm:text-lg">
           {messages.contact.subtitle}
         </p>
+        <p className="luxury-muted mt-2 text-center text-sm" dir="ltr">
+          <a href={`mailto:${messages.contact.supportEmail}`} className="hover:underline">
+            {messages.contact.supportEmail}
+          </a>
+        </p>
 
         <form onSubmit={submit} className="luxury-card mt-10 space-y-6 p-8 sm:p-10">
           <div className="space-y-2">

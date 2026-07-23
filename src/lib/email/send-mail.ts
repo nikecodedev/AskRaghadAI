@@ -80,6 +80,20 @@ export async function sendPasswordResetEmail(
   return false;
 }
 
+export async function sendContactNotification(
+  to: string,
+  fields: { name: string; email: string; message: string },
+): Promise<boolean> {
+  const subject = `New Contact Us message from ${fields.name}`;
+  const html = `<p><strong>Name:</strong> ${fields.name}</p><p><strong>Email:</strong> ${fields.email}</p><p><strong>Message:</strong></p><p>${fields.message.replace(/\n/g, "<br>")}</p>`;
+  const text = `Name: ${fields.name}\nEmail: ${fields.email}\n\n${fields.message}`;
+
+  const input: SendMailInput = { to, subject, html, text };
+  if (await sendViaResend(input)) return true;
+  if (await sendViaSmtp(input)) return true;
+  return false;
+}
+
 export function isEmailConfigured(): boolean {
   if (process.env.RESEND_API_KEY?.trim() && process.env.EMAIL_FROM?.trim()) return true;
   if (

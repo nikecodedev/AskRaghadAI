@@ -33,6 +33,27 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function applySettingOverrides(
+  messages: Messages,
+  locale: Locale,
+  overrides: Record<string, string>,
+): Messages {
+  const val = (key: string) => overrides[`${key}.${locale}`];
+  const next = structuredClone(messages);
+
+  if (val("hero.title")) next.hero.taglineShort = val("hero.title")!;
+  if (val("hero.subtitle")) next.hero.subtitle = val("hero.subtitle")!;
+  if (val("about.subtitle")) next.about.subtitle = val("about.subtitle")!;
+  if (val("about.introBody")) next.about.introBody = val("about.introBody")!;
+  if (val("about.missionBody")) next.about.missionBody = val("about.missionBody")!;
+  if (val("vision.subtitle")) next.vision.subtitle = val("vision.subtitle")!;
+  if (val("vision.leadBody")) next.vision.leadBody = val("vision.leadBody")!;
+  if (val("contact.subtitle")) next.contact.subtitle = val("contact.subtitle")!;
+  if (overrides["support.email"]) next.contact.supportEmail = overrides["support.email"];
+
+  return next;
+}
+
 function applyDocumentDirection(locale: Locale) {
   const dir = dirFromLocale(locale);
   document.documentElement.lang = locale;
@@ -100,8 +121,18 @@ export function AppProviders({
   }, []);
 
   useEffect(() => {
-    setMessages(getMessagesSync(locale));
+    const base = getMessagesSync(locale);
+    setMessages(base);
     applyDocumentDirection(locale);
+
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data: { settings?: Record<string, string> }) => {
+        const overrides = data.settings ?? {};
+        if (Object.keys(overrides).length === 0) return;
+        setMessages((prev) => applySettingOverrides(prev, locale, overrides));
+      })
+      .catch(() => {});
   }, [locale]);
 
   const setLocale = useCallback(

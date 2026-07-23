@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getSupportEmail } from "@/lib/settings/store";
+import { sendContactNotification } from "@/lib/email/send-mail";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +21,13 @@ export async function POST(request: Request) {
     await prisma.contactMessage.create({
       data: { name, email, message },
     });
+
+    // Best-effort forwarding — the message is already saved and viewable in
+    // the admin inbox even if outbound email isn't configured or fails.
+    const supportEmail = await getSupportEmail();
+    sendContactNotification(supportEmail, { name, email, message }).catch((err) =>
+      console.error("[contact] notification failed", err),
+    );
 
     return NextResponse.json({ ok: true });
   } catch (error) {

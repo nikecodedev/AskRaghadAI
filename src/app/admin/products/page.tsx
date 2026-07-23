@@ -13,8 +13,6 @@ type Product = {
   nameAr: string;
   price: number | null;
   currency: string;
-  affiliateUrl: string | null;
-  discountCode: string | null;
   imageUrl: string | null;
   active: boolean;
 };
@@ -25,8 +23,6 @@ const emptyForm = {
   nameAr: "",
   price: "",
   currency: "SAR",
-  affiliateUrl: "",
-  discountCode: "",
   imageUrl: "",
 };
 
@@ -128,6 +124,8 @@ export default function AdminProductsPage() {
           {syncMessage && <p className="mt-3 text-sm text-[#2c6e55]">{syncMessage}</p>}
         </section>
 
+        <p className="mt-6 text-xs text-[#7a8b82]">{messages.admin.affiliateManagedInSheet}</p>
+
         <form onSubmit={submit} className="mt-6 luxury-card space-y-3 p-6">
           <select
             value={form.category}
@@ -169,18 +167,6 @@ export default function AdminProductsPage() {
             />
           </div>
           <input
-            placeholder={messages.admin.affiliateUrl}
-            value={form.affiliateUrl}
-            onChange={(e) => setForm({ ...form, affiliateUrl: e.target.value })}
-            className="luxury-input"
-          />
-          <input
-            placeholder={messages.admin.discountCode}
-            value={form.discountCode}
-            onChange={(e) => setForm({ ...form, discountCode: e.target.value })}
-            className="luxury-input"
-          />
-          <input
             placeholder={messages.admin.imageUrl}
             value={form.imageUrl}
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
@@ -202,7 +188,6 @@ export default function AdminProductsPage() {
                 <p className="text-xs text-[#7a8b82]">
                   {p.category}
                   {p.price != null ? ` · ${p.price} ${p.currency}` : ""}
-                  {p.discountCode ? ` · ${p.discountCode}` : ""}
                 </p>
               </div>
               <button

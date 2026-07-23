@@ -123,3 +123,13 @@ model CategoryCard {
 
   @@index([active, sortOrder])
 }
+
+// Generic key/value store for admin-editable text: homepage titles/subtitles,
+// static page content (About, Vision, Contact), and site-wide settings like
+// the support email. Falls back to the i18n JSON defaults when a key is unset.
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
