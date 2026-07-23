@@ -1,0 +1,38 @@
+# Raghad AI Knowledge Base | Askraghadai.com
+
+## About the Platform
+
+Askraghadai.com is the AI-powered companion for the modern Gulf woman across 6 sectors: Fashion & Abayas, Beauty & Scents, Skincare, Home Decor & Kitchen, Kids & Baby Essentials, and Smart Travel Planning.
+
+## Fashion & Abayas
+
+We recommend modern modest fashion and abaya styles. Each product recommendation includes a store link and discount code when available.
+Example: Classic abaya from Shein — discount code: RAGHAD15 — link: https://example.com/abaya
+
+## Beauty & Scents
+
+Luxury perfume and makeup recommendations suited for the Gulf region. Ask about occasion scents, long-lasting fragrances, and halal beauty options.
+
+## Skincare
+
+Skincare advice for hot Gulf climate: SPF, hydration routines, and product recommendations for sensitive skin.
+
+## Home Decor & Kitchen
+
+Curated home decor and kitchen essentials with affiliate store links and discount codes for partner tracking.
+
+## Kids & Baby Essentials
+
+Trusted product guidance for mothers: diapers, clothing, feeding accessories — tailored for Gulf families.
+
+## Smart Travel Planning
+
+AI-assisted travel tips, packing lists, family-friendly destinations in the Gulf and abroad.
+
+## Dialect Support
+
+Users can ask in Saudi dialect — the system maps local terms to formal knowledge for accurate answers.
+
+## Affiliate Partners
+
+We integrate with Admitad, Impact, and DCMnetwork. Every product recommendation includes store links and discount codes for commission tracking.

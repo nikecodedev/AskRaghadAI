@@ -1,0 +1,206 @@
+{
+  "brand": "Raghad AI",
+  "tagline": "Your intelligent luxury lifestyle assistant",
+  "nav": {
+    "home": "Home",
+    "chat": "AI Chat",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "register": "Register",
+    "account": "Sign In / Register",
+    "logout": "Logout",
+    "admin": "Admin",
+    "about": "About Us",
+    "vision": "Our Vision",
+    "contact": "Contact Us",
+    "menu": "Menu",
+    "close": "Close"
+  },
+  "settings": {
+    "title": "Settings",
+    "region": "Country / Region",
+    "currency": "Currency",
+    "language": "Language",
+    "open": "Open settings"
+  },
+  "hero": {
+    "title": "Smart answers tailored to your region",
+    "taglineShort": "Ask Raghad AI – Your trusted smart guide",
+    "domain": "Askraghadai.com",
+    "subtitle": "Your smart guide for an exceptional experience in fashion, beauty, travel, and luxury living.",
+    "searchPlaceholder": "Ask Raghad AI...",
+    "searchButton": "Search",
+    "cta": "Start chatting",
+    "payment": "Affiliate deals",
+    "voice": "Voice search",
+    "camera": "Photo search",
+    "file": "Upload image"
+  },
+  "cards": {
+    "title": "Our Categories",
+    "subtitle": "Curated lifestyle categories designed for your smart daily needs",
+    "explore": "Explore"
+  },
+  "products": {
+    "shopNow": "Shop now"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "placeholder": "Ask Raghad AI in Arabic or English...",
+    "welcome": "Welcome! I'm Raghad — your smart guide for fashion, beauty, skincare, and travel. Ask your question below and I'll help you find the best recommendations.",
+    "send": "Send",
+    "exportPdf": "Export PDF",
+    "exportingPdf": "Exporting...",
+    "pdfTitle": "Raghad AI — Conversation Summary",
+    "pdfUser": "User",
+    "pdfAssistant": "Assistant",
+    "visitLink": "Visit link",
+    "browseCategories": "Browse our categories:",
+    "voiceUnsupported": "Voice input isn't supported in this browser. Please try Chrome, Edge, or Safari.",
+    "imageAttached": "Image attached — ask a question or send to analyse it."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "conversations": "Your conversations",
+    "empty": "No conversations yet. Start chatting to see history here.",
+    "loading": "Loading...",
+    "messages": "messages"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Manage products, homepage cards, and knowledge base",
+    "products": "Products",
+    "productsDesc": "Add and edit affiliate products shown in chat",
+    "categoryCards": "Homepage Category Cards",
+    "categoryCardsDesc": "Add, edit, or delete homepage cards with title, description, link, and image",
+    "knowledge": "Knowledge Base",
+    "knowledgeDesc": "Upload documents and re-index content",
+    "loading": "Checking access...",
+    "unauthorized": "You are not authorized to access this page.",
+    "nameEn": "Name / Title (English)",
+    "nameAr": "Name / Title (Arabic)",
+    "descriptionEn": "Description (English)",
+    "descriptionAr": "Description (Arabic)",
+    "cardLink": "Card link (e.g. /chat?category=fashion)",
+    "sortOrder": "Sort order",
+    "price": "Price",
+    "affiliateUrl": "Affiliate URL",
+    "discountCode": "Discount code",
+    "imageUrl": "Image URL",
+    "addProduct": "Add product",
+    "addCard": "Add card",
+    "saveCard": "Save changes",
+    "cancelEdit": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "saveFailed": "Save failed",
+    "docTitle": "Document title",
+    "docContent": "Text content",
+    "uploadDoc": "Upload document",
+    "reindex": "Re-index knowledge base",
+    "uploaded": "Uploaded successfully",
+    "indexing": "Indexing...",
+    "indexDone": "Indexing complete"
+  },
+  "auth": {
+    "tabsLabel": "Authentication options",
+    "loginTitle": "Sign in",
+    "registerTitle": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "submitLogin": "Sign in",
+    "submitRegister": "Register",
+    "submitting": "Please wait...",
+    "requestFailed": "Request failed. Please try again.",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot password?",
+    "forgotTitle": "Forgot password",
+    "forgotSubtitle": "Enter your email and we'll send you a link to reset your password.",
+    "sendResetLink": "Send reset link",
+    "resetEmailSent": "If an account exists for that email, we sent password reset instructions. Check your inbox.",
+    "resetTitle": "Set a new password",
+    "resetPassword": "Update password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "resetSuccess": "Your password has been updated. You can sign in now.",
+    "backToLogin": "Back to sign in",
+    "invalidResetLink": "This reset link is invalid or expired.",
+    "passwordTooShort": "Password must be at least 6 characters.",
+    "passwordMismatch": "Passwords do not match.",
+    "changePasswordTitle": "Change password",
+    "changePasswordSubtitle": "Update your password while signed in. You'll need your current password.",
+    "currentPassword": "Current password",
+    "changePasswordButton": "Save new password",
+    "changePasswordSuccess": "Your password has been updated successfully."
+  },
+  "region": {
+    "label": "Region",
+    "ksa": "Saudi Arabia",
+    "gcc": "Gulf (GCC)",
+    "egypt": "Egypt"
+  },
+  "about": {
+    "title": "About Us",
+    "subtitle": "Raghad AI is your trusted luxury lifestyle companion — blending intelligent guidance with elegant, practical recommendations.",
+    "introTitle": "Who we are",
+    "introBody": "Askraghadai.com helps modern users discover fashion, beauty, skincare, home, kids essentials, and travel ideas with confidence. We combine carefully curated knowledge with AI so every conversation feels personal, clear, and useful.",
+    "missionTitle": "Our Mission",
+    "missionBody": "To empower every user with personalized AI guidance, trusted partner offers, and polished bilingual content — so decisions feel easier, smarter, and more refined.",
+    "valuesTitle": "What we stand for",
+    "valuesBody": "Clarity over clutter. Trust over noise. Luxury that feels practical. We design every answer and recommendation to support confident choices in everyday life.",
+    "contentNote": "Content is updated periodically to ensure the best recommendations."
+  },
+  "vision": {
+    "title": "Our Vision",
+    "subtitle": "A smarter, more elegant way to discover lifestyle recommendations.",
+    "leadTitle": "Where we are going",
+    "leadBody": "We envision Raghad AI as a leading smart advisor — a place where Arabic and English speakers receive polished, trustworthy guidance for fashion, beauty, travel, and modern living.",
+    "futureTitle": "The experience we build",
+    "futureBody": "Our vision is an assistant that understands individual taste, recommends with care, and connects users to verified offers without confusion. From fashion to itineraries, every interaction should feel calm, premium, and useful.",
+    "promiseTitle": "Our promise",
+    "promiseBody": "We will keep improving our knowledge, partnerships, and tools so Raghad AI remains a reliable companion for confident choices — today and as the platform grows."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We would love to hear from you. Fill in the form and we will get back to you soon.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Your message",
+    "send": "Send Message",
+    "sending": "Sending...",
+    "success": "Thank you! We received your message and will reply soon.",
+    "error": "Could not send your message. Please try again."
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Raghad AI",
+    "items": [
+      {
+        "q": "What is Raghad AI?",
+        "a": "Raghad AI is your intelligent luxury lifestyle advisor. It gives personalized recommendations across fashion, beauty, skincare, home, kids' essentials, and smart travel planning."
+      },
+      {
+        "q": "How does the AI give recommendations?",
+        "a": "It combines a curated knowledge base with advanced AI to answer your questions directly in chat — including product advice, skincare routines, and complete travel itineraries tailored to your needs."
+      },
+      {
+        "q": "Can I search using my voice or a photo?",
+        "a": "Yes. Use the microphone to search by voice, or the camera and upload icons to search with an image. The assistant analyses your photo and suggests suitable options."
+      },
+      {
+        "q": "Which languages are supported?",
+        "a": "Raghad AI supports Arabic and English, with a global lifestyle focus — fashion, beauty, home, kids, and travel advice tailored to your language preference."
+      },
+      {
+        "q": "Are the shopping links trustworthy?",
+        "a": "Recommendations appear as clean product cards with trusted store links and discount codes from our verified affiliate partners — no raw links, ever."
+      }
+    ]
+  },
+  "footer": {
+    "note": "Content is updated periodically to ensure the best recommendations."
+  }
+}

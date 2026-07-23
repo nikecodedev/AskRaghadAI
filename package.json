@@ -1,0 +1,67 @@
+{
+  "name": "raghad-ai",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "scripts": {
+    "dev": "node scripts/dev-wasm.js",
+    "dev:native": "next dev --webpack",
+    "dev:turbo": "next dev --turbopack",
+    "build": "prisma generate && next build",
+    "build:wasm": "prisma generate && node scripts/build-wasm.js",
+    "start": "next start",
+    "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "npx tsx scripts/seed-products.ts",
+    "db:seed-affiliates": "npx tsx scripts/seed-affiliate-products.ts",
+    "db:seed-affiliates-xlsx": "npx tsx scripts/seed-affiliates-from-xlsx.ts",
+    "db:ensure-category-cards": "npx tsx scripts/ensure-category-card-neon.ts",
+    "db:seed-category-cards": "npx tsx scripts/seed-category-cards-http.ts",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "rag:index": "npx tsx scripts/prepare-chunks.ts && powershell -ExecutionPolicy Bypass -File scripts/embed-chunks.ps1 && npx tsx scripts/import-embeddings.ts",
+    "rag:index:node": "npx tsx scripts/index-kb.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^6.19.3",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "bufferutil": "^4.1.0",
+    "dotenv": "^17.4.2",
+    "html2canvas": "^1.4.1",
+    "jose": "^6.2.3",
+    "jspdf": "^4.2.1",
+    "next": "16.2.10",
+    "nodemailer": "^7.0.3",
+    "openai": "^6.45.0",
+    "prisma": "^6.19.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "utf-8-validate": "^6.0.6",
+    "ws": "^8.21.1"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/nodemailer": "^6.4.17",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.0",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@next/swc-wasm-nodejs": "^16.2.10"
+  }
+}
