@@ -33,20 +33,23 @@ model PasswordResetToken {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  category      String
-  nameEn        String
-  nameAr        String
-  descriptionEn String?
-  descriptionAr String?
-  imageUrl      String?
-  price         Float?
-  currency      String   @default("SAR")
-  affiliateUrl  String?
-  discountCode  String?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  category        String
+  subcategory     String?
+  nameEn          String
+  nameAr          String
+  descriptionEn   String?
+  descriptionAr   String?
+  imageUrl        String?
+  price           Float?
+  currency        String   @default("SAR")
+  affiliateUrl    String?
+  discountCode    String?
+  targetCountries String?
+  tags            String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([category])
   @@index([active])

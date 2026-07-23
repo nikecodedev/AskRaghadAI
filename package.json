@@ -32,6 +32,7 @@
     "bcryptjs": "^3.0.3",
     "bufferutil": "^4.1.0",
     "dotenv": "^17.4.2",
+    "googleapis": "^173.0.0",
     "html2canvas": "^1.4.1",
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",

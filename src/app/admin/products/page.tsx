@@ -35,6 +35,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState<"pull" | "push" | null>(null);
+  const [syncMessage, setSyncMessage] = useState("");
 
   const load = () => {
     fetch("/api/admin/products")
@@ -46,6 +48,29 @@ export default function AdminProductsPage() {
   useEffect(() => {
     load();
   }, [messages.admin.unauthorized]);
+
+  const runSync = async (direction: "pull" | "push") => {
+    setSyncing(direction);
+    setSyncMessage("");
+    try {
+      const res = await fetch("/api/admin/sheets-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncMessage(data.error || messages.admin.syncFailed);
+        return;
+      }
+      setSyncMessage(messages.admin.syncDone);
+      load();
+    } catch {
+      setSyncMessage(messages.admin.syncFailed);
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +103,30 @@ export default function AdminProductsPage() {
           ← {messages.admin.title}
         </Link>
         <h1 className="mt-4 font-serif text-2xl text-[#2c3e35]">{messages.admin.products}</h1>
+
+        <section className="mt-6 luxury-card p-6">
+          <h2 className="font-medium text-[#2c3e35]">{messages.admin.sheetSync}</h2>
+          <p className="mt-1 text-sm text-[#7a8b82]">{messages.admin.sheetSyncDesc}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => runSync("pull")}
+              disabled={syncing !== null}
+              className="luxury-btn"
+            >
+              {syncing === "pull" ? messages.admin.syncing : messages.admin.pullFromSheet}
+            </button>
+            <button
+              type="button"
+              onClick={() => runSync("push")}
+              disabled={syncing !== null}
+              className="luxury-btn"
+            >
+              {syncing === "push" ? messages.admin.syncing : messages.admin.pushToSheet}
+            </button>
+          </div>
+          {syncMessage && <p className="mt-3 text-sm text-[#2c6e55]">{syncMessage}</p>}
+        </section>
 
         <form onSubmit={submit} className="mt-6 luxury-card space-y-3 p-6">
           <select

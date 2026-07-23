@@ -101,7 +101,14 @@
     "reindex": "Re-index knowledge base",
     "uploaded": "Uploaded successfully",
     "indexing": "Indexing...",
-    "indexDone": "Indexing complete"
+    "indexDone": "Indexing complete",
+    "sheetSync": "Google Sheet Sync",
+    "sheetSyncDesc": "Pull products from the Sheet into the site, or push site changes back to the Sheet",
+    "pullFromSheet": "Import from Sheet",
+    "pushToSheet": "Export to Sheet",
+    "syncing": "Syncing...",
+    "syncFailed": "Sync failed",
+    "syncDone": "Sync complete"
   },
   "auth": {
     "tabsLabel": "Authentication options",
