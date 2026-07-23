@@ -41,6 +41,11 @@ yarn-error.log*
 /backup-*.sql
 /backup-*.zip
 
+# Google service account keys (never commit)
+*service-account*.json
+askraghadai-sheet-*.json
+/credentials/
+
 # vercel
 .vercel
 
