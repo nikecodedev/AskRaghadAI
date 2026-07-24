@@ -82,6 +82,7 @@ export function getBundledProductsForChat(options: {
       return {
         id: `bundled-${resolvedCategory}-${index}`,
         category: resolvedCategory,
+        subcategory: null,
         nameEn: row.nameEn,
         nameAr: row.nameAr,
         descriptionEn: row.descriptionEn,
@@ -91,6 +92,8 @@ export function getBundledProductsForChat(options: {
         currency: "SAR",
         affiliateUrl: row.affiliateUrl,
         discountCode: row.discountCode,
+        targetCountries: null,
+        tags: null,
         active: true,
         createdAt: now,
         updatedAt: now,
