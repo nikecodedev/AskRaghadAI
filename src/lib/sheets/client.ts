@@ -1,11 +1,21 @@
 import { google } from "googleapis";
 
 function loadCredentials() {
+  // Preferred: two short env vars (more reliable to paste into hosting panels
+  // than one ~2800-char blob, which silently failed to save on Hostinger).
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (clientEmail && privateKey) {
+    return { client_email: clientEmail, private_key: privateKey.replace(/\\n/g, "\n") };
+  }
+
+  // Fallback: single JSON blob (raw or base64-encoded), kept for local dev / .env use.
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!raw) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not set");
+    throw new Error(
+      "Google Sheets credentials are not set (need GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY, or GOOGLE_SERVICE_ACCOUNT_JSON)",
+    );
   }
-  // Accept either raw JSON or base64-encoded JSON (base64 avoids .env line-break issues).
   const jsonText = raw.trim().startsWith("{")
     ? raw
     : Buffer.from(raw, "base64").toString("utf8");
