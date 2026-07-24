@@ -77,10 +77,18 @@ export function MarkdownContent({
   };
 
   for (const line of lines) {
-    const trimmed = line.trim();
+    // Strip invisible RTL/LTR mark characters the model sometimes inserts before
+    // punctuation — left in place they make "- text" and "1. text" silently fail
+    // to match the list patterns below.
+    const trimmed = line.trim().replace(/[\u200E\u200F]/g, "");
     const heading = /^(#{1,3})\s+(.+)/.exec(trimmed);
     const bullet = /^[-*•]\s+(.+)/.exec(trimmed);
-    const numbered = /^\d+\.\s+(.+)/.exec(trimmed);
+    // A numbered line is sometimes fully wrapped in bold by the model
+    // ("**1. Title**" instead of "1. **Title**") — that never reached the
+    // digit-first check below, so it displayed literally whatever number the
+    // model happened to type instead of a real, auto-incrementing list.
+    const boldNumbered = /^\*\*\d+\.\s+(.+?)\*\*\s*$/.exec(trimmed);
+    const numbered = boldNumbered ? null : /^\d+\.\s+(.+)/.exec(trimmed);
 
     if (bullet) {
       // A bullet line immediately following a numbered item (no blank line/heading
@@ -101,6 +109,16 @@ export function MarkdownContent({
       listItems.push(
         <li key={`li-${listItems.length}`}>{renderInline(bullet[1], `li-${listItems.length}`)}</li>,
       );
+      continue;
+    }
+
+    if (boldNumbered) {
+      flushBulletList();
+      orderedItems.push([
+        <strong key={`oli-${orderedItems.length}-0`} className="font-bold text-[#1f5240]">
+          {renderInline(boldNumbered[1], `oli-${orderedItems.length}`)}
+        </strong>,
+      ]);
       continue;
     }
 

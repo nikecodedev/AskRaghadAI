@@ -30,6 +30,7 @@ export default function AdminProductsPage() {
   const { messages, locale } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState<"pull" | "push" | null>(null);
   const [syncMessage, setSyncMessage] = useState("");
@@ -71,8 +72,9 @@ export default function AdminProductsPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const res = await fetch("/api/admin/products", {
-      method: "POST",
+    const url = editingId ? `/api/admin/products/${editingId}` : "/api/admin/products";
+    const res = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
@@ -84,11 +86,31 @@ export default function AdminProductsPage() {
       return;
     }
     setForm(emptyForm);
+    setEditingId(null);
     load();
+  };
+
+  const startEdit = (p: Product) => {
+    setEditingId(p.id);
+    setForm({
+      category: p.category,
+      nameEn: p.nameEn,
+      nameAr: p.nameAr,
+      price: p.price != null ? String(p.price) : "",
+      currency: p.currency,
+      imageUrl: p.imageUrl ?? "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm(emptyForm);
   };
 
   const remove = async (id: string) => {
     await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (editingId === id) cancelEdit();
     load();
   };
 
@@ -173,9 +195,16 @@ export default function AdminProductsPage() {
             className="luxury-input"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" className="luxury-btn">
-            {messages.admin.addProduct}
-          </button>
+          <div className="flex gap-3">
+            <button type="submit" className="luxury-btn">
+              {editingId ? messages.admin.saveCard : messages.admin.addProduct}
+            </button>
+            {editingId && (
+              <button type="button" onClick={cancelEdit} className="text-sm text-[#7a8b82] hover:underline">
+                {messages.admin.cancelEdit}
+              </button>
+            )}
+          </div>
         </form>
 
         <ul className="mt-8 space-y-3">
@@ -190,13 +219,22 @@ export default function AdminProductsPage() {
                   {p.price != null ? ` · ${p.price} ${p.currency}` : ""}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => remove(p.id)}
-                className="text-sm text-red-600 hover:underline"
-              >
-                {messages.admin.delete}
-              </button>
+              <div className="flex shrink-0 gap-4">
+                <button
+                  type="button"
+                  onClick={() => startEdit(p)}
+                  className="text-sm text-[#2c6e55] hover:underline"
+                >
+                  {messages.admin.edit}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(p.id)}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  {messages.admin.delete}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

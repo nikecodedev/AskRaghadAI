@@ -106,11 +106,19 @@ export default function AdminKnowledgePage() {
 
         <ul className="mt-8 space-y-3">
           {documents.map((d) => (
-            <li key={d.id} className="luxury-card p-4">
-              <p className="font-medium text-[#2c3e35]">{d.title}</p>
-              <p className="text-xs text-[#7a8b82]">
-                {d.status} · {d._count.chunks} chunks · {d.category}
-              </p>
+            <li key={d.id} className="luxury-card flex items-center justify-between gap-4 p-4">
+              <div>
+                <p className="font-medium text-[#2c3e35]">{d.title}</p>
+                <p className="text-xs text-[#7a8b82]">
+                  {d.status} · {d._count.chunks} chunks · {d.category}
+                </p>
+              </div>
+              <a
+                href={`/api/admin/knowledge/${d.id}?download=1`}
+                className="shrink-0 text-sm text-[#2c6e55] hover:underline"
+              >
+                {messages.admin.download}
+              </a>
             </li>
           ))}
         </ul>

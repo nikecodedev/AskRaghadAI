@@ -142,7 +142,8 @@
     "faqAnswerEn": "الإجابة بالإنجليزية",
     "faqAnswerAr": "الإجابة بالعربية",
     "addFaq": "إضافة سؤال",
-    "syncToKnowledge": "مزامنة مع قاعدة المعرفة"
+    "syncToKnowledge": "مزامنة مع قاعدة المعرفة",
+    "download": "تنزيل"
   },
   "auth": {
     "tabsLabel": "خيارات تسجيل الدخول",

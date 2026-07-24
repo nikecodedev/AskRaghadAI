@@ -12,12 +12,34 @@ type Doc = {
   updatedAt: string;
 };
 
+function parseFaqContent(content: string) {
+  const qMatch = /^Q:\s*(.*)$/m.exec(content);
+  const enMatch = /^A \(English\):\s*(.*)$/m.exec(content);
+  const arMatch = /^A \(Arabic\):\s*(.*)$/m.exec(content);
+  return {
+    question: qMatch?.[1] ?? "",
+    answerEn: enMatch?.[1] ?? "",
+    answerAr: arMatch?.[1] ?? "",
+  };
+}
+
+function buildFaqContent(question: string, answerEn: string, answerAr: string) {
+  return [
+    `Q: ${question}`,
+    answerEn ? `A (English): ${answerEn}` : null,
+    answerAr ? `A (Arabic): ${answerAr}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export default function AdminFaqPage() {
   const { messages } = useApp();
   const [faqs, setFaqs] = useState<Doc[]>([]);
   const [question, setQuestion] = useState("");
   const [answerEn, setAnswerEn] = useState("");
   const [answerAr, setAnswerAr] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState("");
   const [syncing, setSyncing] = useState(false);
 
@@ -30,27 +52,52 @@ export default function AdminFaqPage() {
 
   useEffect(load, []);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setQuestion("");
+    setAnswerEn("");
+    setAnswerAr("");
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || (!answerEn.trim() && !answerAr.trim())) return;
 
-    const content = [
-      `Q: ${question}`,
-      answerEn ? `A (English): ${answerEn}` : null,
-      answerAr ? `A (Arabic): ${answerAr}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const content = buildFaqContent(question, answerEn, answerAr);
 
-    await fetch("/api/admin/knowledge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: question, content, category: "faq" }),
-    });
+    if (editingId) {
+      await fetch(`/api/admin/knowledge/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: question, content }),
+      });
+    } else {
+      await fetch("/api/admin/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: question, content, category: "faq" }),
+      });
+    }
 
-    setQuestion("");
-    setAnswerEn("");
-    setAnswerAr("");
+    resetForm();
+    load();
+  };
+
+  const startEdit = async (id: string) => {
+    const res = await fetch(`/api/admin/knowledge/${id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const parsed = parseFaqContent(data.document.content ?? "");
+    setEditingId(id);
+    setQuestion(parsed.question || data.document.title);
+    setAnswerEn(parsed.answerEn);
+    setAnswerAr(parsed.answerAr);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const remove = async (id: string) => {
+    await fetch(`/api/admin/knowledge/${id}`, { method: "DELETE" });
+    if (editingId === id) resetForm();
     load();
   };
 
@@ -99,9 +146,16 @@ export default function AdminFaqPage() {
             className="luxury-input min-h-[80px]"
             dir="rtl"
           />
-          <button type="submit" className="luxury-btn">
-            {messages.admin.addFaq}
-          </button>
+          <div className="flex gap-3">
+            <button type="submit" className="luxury-btn">
+              {editingId ? messages.admin.saveCard : messages.admin.addFaq}
+            </button>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="text-sm text-[#7a8b82] hover:underline">
+                {messages.admin.cancelEdit}
+              </button>
+            )}
+          </div>
         </form>
 
         <div className="mt-4 flex items-center gap-4">
@@ -113,8 +167,24 @@ export default function AdminFaqPage() {
 
         <ul className="mt-8 space-y-3">
           {faqs.map((f) => (
-            <li key={f.id} className="luxury-card p-4">
+            <li key={f.id} className="luxury-card flex items-center justify-between gap-4 p-4">
               <p className="font-medium text-[#2c3e35]">{f.title}</p>
+              <div className="flex shrink-0 gap-4">
+                <button
+                  type="button"
+                  onClick={() => startEdit(f.id)}
+                  className="text-sm text-[#2c6e55] hover:underline"
+                >
+                  {messages.admin.edit}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(f.id)}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  {messages.admin.delete}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

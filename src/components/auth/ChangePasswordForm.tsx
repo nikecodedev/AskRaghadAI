@@ -50,20 +50,20 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <section className="luxury-card mt-6 p-6 sm:p-8" dir={dir}>
-      <h2 className="text-lg font-semibold text-[#24332c]">{messages.auth.changePasswordTitle}</h2>
-      <p className="luxury-muted mt-2 text-sm">{messages.auth.changePasswordSubtitle}</p>
+    <section className="luxury-card mt-6 max-w-sm p-5 sm:p-6" dir={dir}>
+      <h2 className="text-base font-semibold text-[#24332c]">{messages.auth.changePasswordTitle}</h2>
+      <p className="luxury-muted mt-1.5 text-sm">{messages.auth.changePasswordSubtitle}</p>
 
       {success ? (
         <p
           role="status"
-          className="mt-5 rounded-lg border border-[#2c6e55]/25 bg-[#2c6e55]/8 px-3 py-2.5 text-sm font-medium text-[#1f5240]"
+          className="mt-4 rounded-lg border border-[#2c6e55]/25 bg-[#2c6e55]/8 px-3 py-2.5 text-sm font-medium text-[#1f5240]"
         >
           {messages.auth.changePasswordSuccess}
         </p>
       ) : (
-        <form onSubmit={submit} className="mt-5 space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <div className="space-y-1.5">
             <label htmlFor="current-password" className="luxury-label">
               {messages.auth.currentPassword}
             </label>
@@ -78,7 +78,7 @@ export function ChangePasswordForm() {
               autoComplete="current-password"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label htmlFor="change-new-password" className="luxury-label">
               {messages.auth.newPassword}
             </label>
@@ -94,7 +94,7 @@ export function ChangePasswordForm() {
               autoComplete="new-password"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label htmlFor="change-confirm-password" className="luxury-label">
               {messages.auth.confirmPassword}
             </label>

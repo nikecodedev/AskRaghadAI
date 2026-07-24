@@ -142,7 +142,8 @@
     "faqAnswerEn": "Answer (English)",
     "faqAnswerAr": "Answer (Arabic)",
     "addFaq": "Add FAQ",
-    "syncToKnowledge": "Sync to Knowledge Base"
+    "syncToKnowledge": "Sync to Knowledge Base",
+    "download": "Download"
   },
   "auth": {
     "tabsLabel": "Authentication options",
