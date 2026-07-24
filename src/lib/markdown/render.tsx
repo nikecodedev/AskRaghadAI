@@ -52,7 +52,7 @@ export function MarkdownContent({
   const flushBulletList = () => {
     if (listItems.length === 0) return;
     blocks.push(
-      <ul key={`list-${blockKey++}`} className="my-2 list-disc space-y-1.5 ps-5">
+      <ul key={`list-${blockKey++}`} dir="auto" className="my-2 list-disc space-y-1.5 ps-5">
         {listItems}
       </ul>,
     );
@@ -62,9 +62,11 @@ export function MarkdownContent({
   const flushOrderedList = () => {
     if (orderedItems.length === 0) return;
     blocks.push(
-      <ol key={`olist-${blockKey++}`} className="my-2 list-decimal space-y-1.5 ps-5">
+      <ol key={`olist-${blockKey++}`} dir="auto" className="my-2 list-decimal space-y-1.5 ps-5">
         {orderedItems.map((itemContent, idx) => (
-          <li key={`oli-${idx}`}>{itemContent}</li>
+          <li key={`oli-${idx}`} dir="auto">
+            {itemContent}
+          </li>
         ))}
       </ol>,
     );
@@ -99,7 +101,11 @@ export function MarkdownContent({
         const lastIndex = orderedItems.length - 1;
         orderedItems[lastIndex] = [
           ...orderedItems[lastIndex],
-          <span key={`oli-${lastIndex}-${orderedItems[lastIndex].length}`} className="mt-0.5 block text-[0.925em] text-[#5c6b62]">
+          <span
+            key={`oli-${lastIndex}-${orderedItems[lastIndex].length}`}
+            dir="auto"
+            className="mt-0.5 block text-[0.925em] text-[#5c6b62]"
+          >
             {renderInline(bullet[1], `oli-${lastIndex}-${orderedItems[lastIndex].length}`)}
           </span>,
         ];
@@ -107,7 +113,9 @@ export function MarkdownContent({
       }
       flushOrderedList();
       listItems.push(
-        <li key={`li-${listItems.length}`}>{renderInline(bullet[1], `li-${listItems.length}`)}</li>,
+        <li key={`li-${listItems.length}`} dir="auto">
+          {renderInline(bullet[1], `li-${listItems.length}`)}
+        </li>,
       );
       continue;
     }
@@ -115,7 +123,7 @@ export function MarkdownContent({
     if (boldNumbered) {
       flushBulletList();
       orderedItems.push([
-        <strong key={`oli-${orderedItems.length}-0`} className="font-bold text-[#1f5240]">
+        <strong key={`oli-${orderedItems.length}-0`} dir="auto" className="font-bold text-[#1f5240]">
           {renderInline(boldNumbered[1], `oli-${orderedItems.length}`)}
         </strong>,
       ]);
@@ -125,7 +133,7 @@ export function MarkdownContent({
     if (numbered) {
       flushBulletList();
       orderedItems.push([
-        <span key={`oli-${orderedItems.length}-0`}>
+        <span key={`oli-${orderedItems.length}-0`} dir="auto">
           {renderInline(numbered[1], `oli-${orderedItems.length}`)}
         </span>,
       ]);
@@ -154,7 +162,7 @@ export function MarkdownContent({
             ? "mt-2.5 mb-1 text-base font-semibold text-[#1f5240]"
             : "mt-2 mb-1 text-[0.95rem] font-semibold text-[#24332c]";
       blocks.push(
-        <p key={`h-${blockKey++}`} className={cls}>
+        <p key={`h-${blockKey++}`} dir="auto" className={cls}>
           {renderInline(text, `h-${blockKey}`)}
         </p>,
       );
@@ -162,7 +170,7 @@ export function MarkdownContent({
     }
 
     blocks.push(
-      <p key={`p-${blockKey++}`} className="my-1.5 leading-relaxed">
+      <p key={`p-${blockKey++}`} dir="auto" className="my-1.5 leading-relaxed">
         {renderInline(trimmed, `p-${blockKey}`)}
       </p>,
     );

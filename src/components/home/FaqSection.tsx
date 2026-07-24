@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/components/providers/AppProviders";
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -38,7 +38,17 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export function FaqSection() {
-  const { messages, dir } = useApp();
+  const { messages, dir, locale } = useApp();
+  const [items, setItems] = useState(messages.faq.items);
+
+  useEffect(() => {
+    fetch(`/api/faqs?locale=${locale}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.items) && d.items.length > 0) setItems(d.items);
+      })
+      .catch(() => {});
+  }, [locale]);
 
   return (
     <section id="faq" className="luxury-section mx-auto max-w-3xl px-4 sm:px-6" dir={dir}>
@@ -47,7 +57,7 @@ export function FaqSection() {
         <p className="luxury-muted mt-3">{messages.faq.subtitle}</p>
       </div>
       <div className="space-y-4">
-        {messages.faq.items.map((item, i) => (
+        {items.map((item, i) => (
           <FaqItem key={i} q={item.q} a={item.a} />
         ))}
       </div>
