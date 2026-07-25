@@ -20,10 +20,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Only verify JWT on routes that need auth redirects (saves work on every page/API).
-  const needsSession =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/admin") ||
-    pathname === "/login";
+  const needsSession = pathname.startsWith("/admin") || pathname === "/login";
 
   if (!needsSession) {
     return ensureLocaleCookie(NextResponse.next(), request);
@@ -32,15 +29,18 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   const session = token ? await verifySessionToken(token) : null;
 
-  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) && !session) {
+  if (pathname.startsWith("/admin") && !session) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", pathname);
     return ensureLocaleCookie(NextResponse.redirect(login), request);
   }
 
   if (pathname === "/login" && session) {
+    // Admin-vs-regular routing happens client-side (needs a DB role lookup
+    // this edge proxy intentionally skips) — /chat is a safe default for any
+    // logged-in user either way.
     return ensureLocaleCookie(
-      NextResponse.redirect(new URL("/dashboard", request.url)),
+      NextResponse.redirect(new URL("/chat", request.url)),
       request,
     );
   }
@@ -49,5 +49,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/login"],
+  matcher: ["/admin/:path*", "/login"],
 };

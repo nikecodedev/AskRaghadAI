@@ -14,7 +14,7 @@ export type AuthUser = {
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
 };
 
@@ -28,9 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/auth/me");
       const data = await res.json();
-      setUser(data.user ?? null);
+      const nextUser = data.user ?? null;
+      setUser(nextUser);
+      return nextUser as AuthUser | null;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }

@@ -36,7 +36,6 @@ export function MobileNav({ className = "" }: { className?: string }) {
     { href: "/vision", label: messages.nav.vision },
     { href: "/contact", label: messages.nav.contact },
     { href: "/login", label: messages.nav.account, show: !user },
-    { href: "/dashboard", label: messages.nav.dashboard, show: Boolean(user) },
     { href: "/admin", label: messages.nav.admin, show: Boolean(user?.isAdmin) },
   ];
 

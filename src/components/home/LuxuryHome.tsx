@@ -82,7 +82,7 @@ export function LuxuryHome() {
         {logo}
       </header>
 
-      <main className="relative z-10 mx-auto flex max-w-lg flex-col items-center px-6 pb-8 pt-28 sm:pt-12 md:max-w-2xl md:px-8 md:pt-14 lg:max-w-3xl lg:px-10">
+      <main className="relative z-10 mx-auto flex max-w-lg flex-col items-center px-6 pb-12 pt-14 sm:pt-12 md:max-w-2xl md:px-8 md:pt-14 lg:max-w-3xl lg:px-10">
         <div className="flex w-full flex-col items-center text-center">
           <div className="w-[12.5rem] sm:w-[14rem] md:w-[15rem]">
             <BrandHeroLogo locale={locale} priority />
@@ -106,7 +106,7 @@ export function LuxuryHome() {
 
         <form
           onSubmit={submitSearch}
-          className="mt-10 w-full max-w-md md:max-w-xl lg:max-w-2xl"
+          className="mt-6 w-full max-w-md sm:mt-10 md:max-w-xl lg:max-w-2xl"
         >
           <div className="relative overflow-hidden rounded-full bg-gradient-to-b from-[#e8dcc4] via-[#dccfb0] to-[#c9b88a] p-[2px] shadow-[0_8px_32px_rgba(180,150,90,0.35)]">
             <div className="flex items-center gap-2 rounded-full bg-gradient-to-b from-[#f5eedf] to-[#ebe0cc] py-2 pe-2 ps-5 md:py-3 md:ps-6">

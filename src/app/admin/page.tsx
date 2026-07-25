@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useApp } from "@/components/providers/AppProviders";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 
 type Stats = {
   users: number;
@@ -13,12 +14,22 @@ type Stats = {
   lastSyncAt: string | null;
 };
 
+type ConversationSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messageCount: number;
+  preview: string;
+};
+
 export default function AdminPage() {
   const { messages, locale } = useApp();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [fetchingConversations, setFetchingConversations] = useState(true);
 
   const loadStats = () => {
     fetch("/api/admin/stats")
@@ -34,6 +45,14 @@ export default function AdminPage() {
       })
       .catch(() => setAllowed(false));
   }, []);
+
+  useEffect(() => {
+    if (allowed !== true) return;
+    fetch("/api/conversations")
+      .then((r) => (r.ok ? r.json() : { conversations: [] }))
+      .then((d) => setConversations(d.conversations ?? []))
+      .finally(() => setFetchingConversations(false));
+  }, [allowed]);
 
   const syncNow = async () => {
     setSyncing(true);
@@ -69,8 +88,8 @@ export default function AdminPage() {
       <AppShell>
         <div className="luxury-page mx-auto max-w-lg px-4 py-16 text-center">
           <p className="text-[#7a8b82]">{messages.admin.unauthorized}</p>
-          <Link href="/dashboard" className="luxury-btn mt-4 inline-flex">
-            {messages.nav.dashboard}
+          <Link href="/chat" className="luxury-btn mt-4 inline-flex">
+            {messages.nav.chat}
           </Link>
         </div>
       </AppShell>
@@ -130,6 +149,50 @@ export default function AdminPage() {
             </Link>
           ))}
         </div>
+
+        <section className="luxury-card mt-8 p-6 sm:p-8">
+          <h2 className="text-lg font-semibold text-[#24332c]">{messages.dashboard.conversations}</h2>
+
+          {fetchingConversations ? (
+            <p className="luxury-muted mt-5">{messages.dashboard.loading}</p>
+          ) : conversations.length === 0 ? (
+            <>
+              <p className="luxury-muted mt-5">{messages.dashboard.empty}</p>
+              <Link href="/chat" className="luxury-btn mt-4 inline-flex">
+                {messages.hero.cta}
+              </Link>
+            </>
+          ) : (
+            <ul className="mt-5 space-y-3">
+              {conversations.map((c) => (
+                <li
+                  key={c.id}
+                  className="rounded-xl border border-[#ddd0b8]/60 bg-white/80 px-4 py-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-[#24332c]">{c.title}</p>
+                      {c.preview && (
+                        <p className="luxury-muted mt-1.5 line-clamp-2 text-sm leading-6">{c.preview}</p>
+                      )}
+                    </div>
+                    <span className="luxury-note shrink-0">
+                      {c.messageCount} {messages.dashboard.messages}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {!fetchingConversations && conversations.length > 0 && (
+            <Link href="/chat" className="mt-5 inline-flex text-base font-medium text-[#2c6e55] hover:underline">
+              {messages.hero.cta}
+            </Link>
+          )}
+        </section>
+
+        <ChangePasswordForm />
       </div>
     </AppShell>
   );

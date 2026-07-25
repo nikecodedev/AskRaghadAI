@@ -31,7 +31,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/dashboard");
+      router.replace(user.isAdmin ? "/admin" : "/chat");
     }
   }, [authLoading, user, router]);
 
@@ -70,9 +70,9 @@ function LoginForm() {
         setError(data.error ?? messages.auth.requestFailed);
         return;
       }
-      await refresh();
+      const me = await refresh();
       const next = searchParams.get("next");
-      router.push(next && next.startsWith("/") ? next : "/dashboard");
+      router.push(next && next.startsWith("/") ? next : me?.isAdmin ? "/admin" : "/chat");
     } catch {
       setError(messages.auth.requestFailed);
     } finally {
