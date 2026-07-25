@@ -10,6 +10,8 @@ export type ChatProduct = {
   affiliateUrl?: string;
   discountCode?: string;
   category: string;
+  bundleId?: string;
+  itemRole: string;
 };
 
 export function toChatProduct(product: Product, locale: "en" | "ar"): ChatProduct {
@@ -23,5 +25,7 @@ export function toChatProduct(product: Product, locale: "en" | "ar"): ChatProduc
     affiliateUrl: product.affiliateUrl ?? undefined,
     discountCode: product.discountCode ?? undefined,
     category: product.category,
+    bundleId: product.bundleId ?? undefined,
+    itemRole: product.itemRole,
   };
 }

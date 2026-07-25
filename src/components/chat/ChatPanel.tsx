@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/providers/AppProviders";
 import { ChatProductCard } from "@/components/chat/ChatProductCard";
+import { BundleCard } from "@/components/chat/BundleCard";
 import {
   CategorySuggestions,
   ChatMessageContent,
@@ -19,6 +20,16 @@ type ChatMessage = {
   products?: ChatProduct[];
   suggestCategories?: boolean;
 };
+
+// A real assembled set: 2+ returned items that all share the same Bundle_ID.
+// Anything else (a single item, or the usual "top match + one complementary
+// suggestion" pair with no shared bundle) renders as plain individual cards.
+function isBundleGroup(products: ChatProduct[]): boolean {
+  if (products.length < 2) return false;
+  const firstId = products[0].bundleId;
+  if (!firstId) return false;
+  return products.every((p) => p.bundleId === firstId);
+}
 
 /* Minimal typing for the browser Web Speech API (Chrome/Edge/Safari). */
 type SpeechRecognitionLike = {
@@ -287,11 +298,15 @@ export function ChatPanel() {
                   </div>
                 )}
                 {msg.products && msg.products.length > 0 && (
-                  <div className="chat-bubble-assistant mt-3 grid gap-3 sm:grid-cols-2">
-                    {msg.products.map((p) => (
-                      <ChatProductCard key={p.id} product={p} />
-                    ))}
-                  </div>
+                  isBundleGroup(msg.products) ? (
+                    <BundleCard products={msg.products} />
+                  ) : (
+                    <div className="chat-bubble-assistant mt-3 grid gap-3 sm:grid-cols-2">
+                      {msg.products.map((p) => (
+                        <ChatProductCard key={p.id} product={p} />
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
             ))}

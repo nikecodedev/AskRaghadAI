@@ -45,6 +45,20 @@ function rankByQueryRelevance(products: ProductRow[], query: string) {
   );
 }
 
+// Explicit "give me the whole thing" language — this is what distinguishes
+// "I need a travel bag" (single item + one optional add-on) from "plan a
+// trip to London" or "I have a wedding next week" (full assembled set).
+const BUNDLE_INTENT_HINT =
+  /\b(outfit|full set|complete set|bundle|whole trip|entire trip|plan a trip|plan my trip)\b|طقم|أطقم|كامل|خطة سفر|رحلة كاملة|تجهيز(ة)?/i;
+
+async function fetchBundleGroup(bundleId: string) {
+  const items = await prisma.product.findMany({
+    where: { active: true, bundleId },
+    orderBy: { itemRole: "asc" }, // "main" sorts before "complementary" alphabetically
+  });
+  return items;
+}
+
 export async function getProductsForChat(options: {
   query?: string;
   category?: string;
@@ -84,7 +98,18 @@ export async function getProductsForChat(options: {
           take: Math.max(limit * 4, 8),
         });
 
-  return rankByQueryRelevance(pool, query).slice(0, limit);
+  const ranked = rankByQueryRelevance(pool, query);
+  const topMatch = ranked[0];
+
+  // On-demand complete set: the user explicitly asked for an outfit/trip/set
+  // and the best match belongs to a bundle — pull in every item that shares
+  // its Bundle_ID, regardless of the normal card limit.
+  if (topMatch?.bundleId && BUNDLE_INTENT_HINT.test(query)) {
+    const group = await fetchBundleGroup(topMatch.bundleId);
+    if (group.length > 1) return group;
+  }
+
+  return ranked.slice(0, limit);
 }
 
 export async function listAllProducts() {

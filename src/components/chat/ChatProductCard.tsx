@@ -3,6 +3,7 @@
 import Image from "next/image";
 import type { ChatProduct } from "@/lib/products/types";
 import { useApp } from "@/components/providers/AppProviders";
+import { CopyCodeButton } from "@/components/chat/CopyCodeButton";
 
 /**
  * Affiliate product card for chat.
@@ -73,11 +74,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
               {product.price} {product.currency}
             </span>
           )}
-          {product.discountCode && (
-            <span className="rounded-full bg-[#c9a962]/20 px-2 py-0.5 text-xs text-[#9a8560]">
-              {product.discountCode}
-            </span>
-          )}
+          {product.discountCode && <CopyCodeButton code={product.discountCode} />}
         </div>
 
         {href ? (

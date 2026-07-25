@@ -42,7 +42,13 @@
     "explore": "Explore"
   },
   "products": {
-    "shopNow": "Shop now"
+    "shopNow": "Shop now",
+    "bundleTitle": "Complete set",
+    "bundleHint": "Every item has its own Buy Now link — uncheck anything you don't want in the total.",
+    "includeInTotal": "Include in total",
+    "optional": "Optional",
+    "bundleTotal": "Total",
+    "bundleTotalEmpty": "Select items to see a total"
   },
   "chat": {
     "title": "AI Assistant",
