@@ -230,15 +230,26 @@ export async function exportChatToPdf(options: {
         ]),
       );
     }
+    // document.fonts.ready is known to hang indefinitely on some Android
+    // WebViews — never let it block the export forever.
     if (document.fonts?.ready) {
-      await document.fonts.ready;
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((r) => setTimeout(r, 2000)),
+      ]);
     }
     // Give layout a beat so shaping settles before rasterize (esp. Android).
     await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 180)));
 
+    // Cap the rasterization scale — a long conversation at scale:2 on a
+    // high-DPI phone can produce a canvas past the browser's max canvas
+    // size, which silently fails on some mobile browsers.
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const scale = Math.min(2, Math.max(1, dpr));
+
     const html2canvas = (await import("html2canvas")).default;
     const canvas = await html2canvas(node, {
-      scale: 2,
+      scale,
       backgroundColor: "#faf6ef",
       useCORS: true,
       logging: false,
@@ -289,13 +300,10 @@ export async function exportChatToPdf(options: {
     doc.save(filename);
   } catch (error) {
     console.error("[pdf] canvas export failed, using text fallback", error);
-    // Arabic must stay on the canvas path when possible; plain fallback reverses
-    // letters. Only use it for English-only threads or as last resort.
-    if (!hasArabic) {
-      exportPlainText({ history, locale, labels });
-    } else {
-      throw error;
-    }
+    // Prefer the canvas path for Arabic (plain jsPDF text reverses Arabic
+    // letters), but a degraded PDF still beats the button silently doing
+    // nothing — always give the user a file rather than throwing away here.
+    exportPlainText({ history, locale, labels });
   } finally {
     if (node.parentNode) {
       document.body.removeChild(node);
