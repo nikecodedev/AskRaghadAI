@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useApp } from "@/components/providers/AppProviders";
 import { getMessagesSync } from "@/lib/i18n/get-messages";
-import { DEFAULT_SUPPORT_EMAIL } from "@/lib/settings/store";
+import { DEFAULT_SUPPORT_EMAIL } from "@/lib/settings/constants";
 
 function buildFields() {
   const en = getMessagesSync("en");

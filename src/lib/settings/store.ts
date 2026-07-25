@@ -1,30 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
+import { DEFAULT_SUPPORT_EMAIL, SETTING_KEYS } from "@/lib/settings/constants";
 
-export const DEFAULT_SUPPORT_EMAIL = "info@askraghadai.com";
-
-// The fixed set of admin-editable content keys. Locale-specific values use
-// ".en"/".ar" suffixes; support.email has no locale.
-export const SETTING_KEYS = [
-  "hero.title.en",
-  "hero.title.ar",
-  "hero.subtitle.en",
-  "hero.subtitle.ar",
-  "about.subtitle.en",
-  "about.subtitle.ar",
-  "about.introBody.en",
-  "about.introBody.ar",
-  "about.missionBody.en",
-  "about.missionBody.ar",
-  "vision.subtitle.en",
-  "vision.subtitle.ar",
-  "vision.leadBody.en",
-  "vision.leadBody.ar",
-  "contact.subtitle.en",
-  "contact.subtitle.ar",
-  "support.email",
-] as const;
-
-export type SettingKey = (typeof SETTING_KEYS)[number];
+export { DEFAULT_SUPPORT_EMAIL, SETTING_KEYS };
+export type { SettingKey } from "@/lib/settings/constants";
 
 export async function getAllSettings(): Promise<Record<string, string>> {
   const rows = await prisma.siteSetting.findMany();
