@@ -38,7 +38,10 @@ export function getSheetId() {
 }
 
 export const PRODUCT_SHEET_TAB = "Product";
-// Columns A-J are the client's existing data; column K is written by our sync
-// to link each sheet row back to its database record.
-export const PRODUCT_SHEET_RANGE = `${PRODUCT_SHEET_TAB}!A2:K1000`;
-export const PRODUCT_SHEET_HEADER_RANGE = `${PRODUCT_SHEET_TAB}!A1:K1`;
+// M2 layout — A-N are the client's data, O is written by our sync to link
+// each sheet row back to its database record:
+// A Category | B Subcategory | C Item_Name | D Description | E Price |
+// F Currency | G Image_URL | H Affiliate_Link | I Discount_Code | J Active |
+// K Target_Country | L Keywords_Tags | M Bundle_ID | N Item_Role | O DB_ID
+export const PRODUCT_SHEET_RANGE = `${PRODUCT_SHEET_TAB}!A2:O1000`;
+export const PRODUCT_SHEET_HEADER_RANGE = `${PRODUCT_SHEET_TAB}!A1:O1`;

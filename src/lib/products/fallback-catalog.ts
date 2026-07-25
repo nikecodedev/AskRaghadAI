@@ -94,6 +94,8 @@ export function getBundledProductsForChat(options: {
         discountCode: row.discountCode,
         targetCountries: null,
         tags: null,
+        bundleId: null,
+        itemRole: "main",
         active: true,
         createdAt: now,
         updatedAt: now,

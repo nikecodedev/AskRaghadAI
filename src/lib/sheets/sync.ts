@@ -2,18 +2,23 @@ import { prisma } from "@/lib/db/prisma";
 import { getSheetsClient, getSheetId, PRODUCT_SHEET_RANGE, PRODUCT_SHEET_TAB } from "./client";
 import { sheetCategoryToId, idToSheetCategory } from "./category-map";
 
+// M2 column layout — see client.ts for the full A-O map.
 type SheetRow = {
   rowNumber: number; // 1-indexed sheet row, for writing back
   category: string;
   subcategory: string;
   itemName: string;
   description: string;
-  priceRange: string;
+  price: string;
+  currency: string;
   imageUrl: string;
   affiliateLink: string;
-  affiliateActive: string;
+  discountCode: string;
+  active: string;
   targetCountry: string;
   keywords: string;
+  bundleId: string;
+  itemRole: string;
   dbId: string;
 };
 
@@ -32,20 +37,24 @@ function parseRows(values: string[][]): SheetRow[] {
       subcategory: cell(row, 1),
       itemName,
       description: cell(row, 3),
-      priceRange: cell(row, 4),
-      imageUrl: cell(row, 5),
-      affiliateLink: cell(row, 6),
-      affiliateActive: cell(row, 7),
-      targetCountry: cell(row, 8),
-      keywords: cell(row, 9),
-      dbId: cell(row, 10),
+      price: cell(row, 4),
+      currency: cell(row, 5),
+      imageUrl: cell(row, 6),
+      affiliateLink: cell(row, 7),
+      discountCode: cell(row, 8),
+      active: cell(row, 9),
+      targetCountry: cell(row, 10),
+      keywords: cell(row, 11),
+      bundleId: cell(row, 12),
+      itemRole: cell(row, 13),
+      dbId: cell(row, 14),
     });
   });
   return rows;
 }
 
-function parsePrice(priceRange: string): number | null {
-  const match = priceRange.match(/[\d.]+/);
+function parsePrice(raw: string): number | null {
+  const match = raw.match(/[\d.]+/);
   if (!match) return null;
   const n = Number(match[0]);
   return Number.isFinite(n) ? n : null;
@@ -60,7 +69,12 @@ function parseImageUrl(raw: string): string | null {
 function parseActive(raw: string): boolean {
   const v = raw.trim().toLowerCase();
   if (v === "false" || v === "no" || v === "inactive") return false;
-  return true; // default active — sheet doesn't reliably signal inactive yet
+  return true; // blank/unset defaults to active
+}
+
+function parseItemRole(raw: string): string {
+  const v = raw.trim().toLowerCase();
+  return v === "complementary" ? "complementary" : "main";
 }
 
 /**
@@ -104,11 +118,15 @@ export async function pullProductsFromSheet() {
     nameAr: row.itemName, // sheet has no Arabic name column yet — brand names shown as-is
     descriptionEn: row.description || null,
     imageUrl: parseImageUrl(row.imageUrl),
-    price: parsePrice(row.priceRange),
+    price: parsePrice(row.price),
+    currency: row.currency || "SAR",
     affiliateUrl: row.affiliateLink || null,
+    discountCode: row.discountCode || null,
     targetCountries: row.targetCountry || null,
     tags: row.keywords || null,
-    active: parseActive(row.affiliateActive),
+    bundleId: row.bundleId || null,
+    itemRole: parseItemRole(row.itemRole),
+    active: parseActive(row.active),
   });
 
   // Chunked so only CHUNK_SIZE queries are ever in flight at once (each chunk's
@@ -138,7 +156,7 @@ export async function pullProductsFromSheet() {
       requestBody: {
         valueInputOption: "RAW",
         data: idWrites.map((w) => ({
-          range: `${PRODUCT_SHEET_TAB}!K${w.row}`,
+          range: `${PRODUCT_SHEET_TAB}!O${w.row}`,
           values: [[w.id]],
         })),
       },
@@ -177,17 +195,21 @@ export async function pushProductsToSheet() {
       p.nameEn,
       p.descriptionEn ?? "",
       p.price != null ? String(p.price) : "",
+      p.currency ?? "",
       p.imageUrl ?? "",
       p.affiliateUrl ?? "",
+      p.discountCode ?? "",
       p.active ? "TRUE" : "FALSE",
       p.targetCountries ?? "",
       p.tags ?? "",
+      p.bundleId ?? "",
+      p.itemRole === "complementary" ? "Complementary" : "Main",
       p.id,
     ];
 
     const existingRow = rowByDbId.get(p.id);
     if (existingRow) {
-      updates.push({ range: `${PRODUCT_SHEET_TAB}!A${existingRow.rowNumber}:K${existingRow.rowNumber}`, values: [values] });
+      updates.push({ range: `${PRODUCT_SHEET_TAB}!A${existingRow.rowNumber}:O${existingRow.rowNumber}`, values: [values] });
     } else {
       appends.push(values);
     }
