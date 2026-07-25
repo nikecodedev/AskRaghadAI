@@ -82,31 +82,31 @@ export function LuxuryHome() {
         {logo}
       </header>
 
-      <main className="relative z-10 mx-auto flex max-w-lg flex-col items-center px-6 pb-12 pt-14 sm:pt-12 md:max-w-2xl md:px-8 md:pt-14 lg:max-w-3xl lg:px-10">
+      <main className="relative z-10 mx-auto flex max-w-lg flex-col items-center px-6 pb-12 pt-6 sm:pt-12 md:max-w-2xl md:px-8 md:pt-14 lg:max-w-3xl lg:px-10">
         <div className="flex w-full flex-col items-center text-center">
           <div className="w-[12.5rem] sm:w-[14rem] md:w-[15rem]">
             <BrandHeroLogo locale={locale} priority />
           </div>
 
-          <h1 className="mt-3 font-serif text-4xl font-semibold tracking-wide text-[#1f4140] sm:text-5xl">
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-wide text-[#1f4140] sm:mt-3 sm:text-5xl">
             {messages.brand}
           </h1>
           <p
-            className={`${isArabic ? "hero-ar-tagline" : "hero-en-tagline"} mt-4 text-base font-semibold md:text-lg`}
+            className={`${isArabic ? "hero-ar-tagline" : "hero-en-tagline"} mt-2 text-base font-semibold sm:mt-4 md:text-lg`}
           >
             {messages.hero.taglineShort}
           </p>
-          <p className="hero-en-subtitle mt-4 max-w-lg md:text-lg">
+          <p className="hero-en-subtitle mt-2 max-w-lg sm:mt-4 md:text-lg">
             {messages.hero.subtitle}
           </p>
-          <p className="luxury-muted mt-4 font-serif tracking-[0.14em] md:text-base">
+          <p className="luxury-muted mt-2 font-serif tracking-[0.14em] sm:mt-4 md:text-base">
             {messages.hero.domain}
           </p>
         </div>
 
         <form
           onSubmit={submitSearch}
-          className="mt-6 w-full max-w-md sm:mt-10 md:max-w-xl lg:max-w-2xl"
+          className="mt-5 w-full max-w-md sm:mt-10 md:max-w-xl lg:max-w-2xl"
         >
           <div className="relative overflow-hidden rounded-full bg-gradient-to-b from-[#e8dcc4] via-[#dccfb0] to-[#c9b88a] p-[2px] shadow-[0_8px_32px_rgba(180,150,90,0.35)]">
             <div className="flex items-center gap-2 rounded-full bg-gradient-to-b from-[#f5eedf] to-[#ebe0cc] py-2 pe-2 ps-5 md:py-3 md:ps-6">
@@ -140,7 +140,7 @@ export function LuxuryHome() {
           </div>
         </form>
 
-        <div className="mt-5 flex items-center gap-7 md:mt-7 md:gap-9">
+        <div className="mt-7 flex items-center gap-7 md:mt-7 md:gap-9">
           <ActionButton label={messages.hero.voice} onClick={() => goToChatAction("voice")}>
             <svg className="h-6 w-6 text-[#2c6e55]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
