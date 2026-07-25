@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { expandQueryForRetrieval } from "@/lib/rag/dialect";
 import { getActiveIndexedChunks } from "@/lib/rag/store";
 import {
+  detectImageSearchTerms,
   generateAnswer,
   generateVisionAnswer,
   isOpenAIConfigured,
@@ -44,13 +45,25 @@ export async function POST(request: Request) {
       });
     }
 
+    // When an image is attached, describe it first so the description can
+    // actually drive product/knowledge matching below — previously the image
+    // only reached the final answer call, so uploading a photo with no typed
+    // caption matched products against an empty query.
+    let searchQuery = query;
+    if (image) {
+      const detected = await detectImageSearchTerms(image, locale);
+      if (detected) {
+        searchQuery = query ? `${query} ${detected}` : detected;
+      }
+    }
+
     // Load RAG chunks and product matches in parallel (saves ~1–3s vs sequential).
     const [chunks, dbProductsResult] = await Promise.all([
       getActiveIndexedChunks().catch((ragError) => {
         console.error("[chat] rag load", ragError);
         return [] as IndexedChunk[];
       }),
-      getProductsForChat({ query, category }).catch((productError) => {
+      getProductsForChat({ query: searchQuery, category }).catch((productError) => {
         console.error("[chat] products", productError);
         return [] as Awaited<ReturnType<typeof getProductsForChat>>;
       }),
@@ -59,8 +72,8 @@ export async function POST(request: Request) {
     let retrieved: IndexedChunk[] = [];
     if (chunks.length > 0) {
       try {
-        const expanded = expandQueryForRetrieval(query || "");
-        retrieved = await retrieveChunks(chunks, query || "", expanded);
+        const expanded = expandQueryForRetrieval(searchQuery || "");
+        retrieved = await retrieveChunks(chunks, searchQuery || "", expanded);
       } catch (ragError) {
         console.error("[chat] rag retrieve", ragError);
       }
@@ -68,7 +81,7 @@ export async function POST(request: Request) {
 
     let dbProducts = dbProductsResult;
     if (dbProducts.length === 0) {
-      dbProducts = getBundledProductsForChat({ query, category });
+      dbProducts = getBundledProductsForChat({ query: searchQuery, category });
     }
     const partnerNames = dbProducts.map((p) =>
       locale === "ar" ? p.nameAr : p.nameEn,

@@ -239,15 +239,21 @@ function buildSystemPrompt(
 
   const cardRulesAr = hasAffiliateCards
     ? `- لا تضع روابط URL خام أبداً. اذكر أسماء المنتجات أو المتاجر وأكواد الخصم فقط؛ الروابط تظهر تلقائياً في بطاقات المنتجات أسفل الرد.
-- عندما تتوفر بطاقات شركاء أسفل الرد، ادعُ المستخدم بوضوح للضغط على صورة المنتج أو زر «تسوق الآن» للانتقال إلى رابط الشريك والشراء.`
+- عندما تتوفر بطاقات شركاء أسفل الرد، ادعُ المستخدم بوضوح للضغط على صورة المنتج أو زر «تسوق الآن» للانتقال إلى رابط الشريك والشراء.
+- رشّح فقط من قائمة الشركاء المعتمدين المذكورة أدناه. لا تخترع متجراً أو رابطاً غير موجود في القائمة، ولا تفترض توفر متجر لم يُذكر.`
     : `- لا تضع روابط URL خام أبداً.
-- لا تدّعِ أن هناك بطاقات منتجات أو روابط شراء أسفل الرد إن لم تكن متوفرة. ادعُ المستخدم لاختيار قسم مناسب إذا لزم.`;
+- لا تدّعِ أن هناك بطاقات منتجات أو روابط شراء أسفل الرد إن لم تكن متوفرة.
+- لا تقترح أبداً أن يبحث المستخدم بنفسه على جوجل أو أمازون أو أي منصة عامة أخرى؛ هذا ليس دورك.
+- بدلاً من ذلك، قدّم نصيحة مفيدة وحقيقية حول ما يسأل عنه، ثم ادعُه بلطف لاختيار القسم الأنسب من الصفحة الرئيسية ليصله بأحدث الشركاء المتاحين في هذا المجال.`;
 
   const cardRulesEn = hasAffiliateCards
     ? `- Never paste raw URLs. Mention product or store names and discount codes only; links appear automatically in the product cards below your reply.
-- When partner cards are shown below your reply, clearly invite the user to tap the product photo or the "Shop now" button to open the affiliate link and buy.`
+- When partner cards are shown below your reply, clearly invite the user to tap the product photo or the "Shop now" button to open the affiliate link and buy.
+- Only recommend partners from the approved list below. Never invent a store or link that isn't in that list, and never assume a store is available if it wasn't mentioned.`
     : `- Never paste raw URLs.
-- Do not claim that product cards or shop links appear below the reply when none are available. Invite the user to choose a relevant category if needed.`;
+- Do not claim that product cards or shop links appear below the reply when none are available.
+- Never suggest the user search on Google, Amazon, or any other general platform themselves, that is not your role.
+- Instead, give real, useful advice about what they're asking, then warmly invite them to browse the most relevant category from the homepage to be connected with the latest available partners in that area.`;
 
   return locale === "ar"
     ? `أنت رغد (Raghad AI) — المستشار الذكي الفاخر في Askraghadai.com. أنت خبير واثق وودود في الموضة والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر.${categoryHint}
@@ -415,6 +421,52 @@ export async function generateVisionAnswer(
     return locale === "ar"
       ? "عذراً، تعذّر تحليل الصورة الآن. يمكنك وصف ما تبحث عنه نصياً وسأساعدك فوراً."
       : "Sorry, I couldn't analyse the image right now. Describe what you're looking for and I'll help right away.";
+  }
+}
+
+/**
+ * Cheap, focused vision call used only to drive product search. Separate from
+ * generateVisionAnswer (the conversational reply): this asks for a handful of
+ * plain search keywords describing the item/style/brand in the image, so
+ * getProductsForChat has something real to match against instead of running
+ * on an empty query whenever a user uploads a photo with no caption.
+ */
+export async function detectImageSearchTerms(
+  imageDataUrl: string,
+  locale: "en" | "ar" = "en",
+): Promise<string> {
+  const prompt =
+    locale === "ar"
+      ? "بكلمات قليلة فقط (بدون شرح)، ما نوع المنتج أو الأسلوب أو الفئة الظاهر في هذه الصورة؟ مثال: فستان سهرة أسود، ساعة رجالية فضية، عباية مطرزة."
+      : "In a few plain keywords only (no explanation), what type of product, style, or category is shown in this image? Example: black evening dress, silver men's watch, embroidered abaya.";
+
+  const messages = [
+    {
+      role: "user" as const,
+      content: [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: imageDataUrl } },
+      ],
+    },
+  ];
+
+  try {
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY!.trim(),
+      timeout: 20_000,
+      maxRetries: 0,
+    });
+    const response = await client.chat.completions.create({
+      model: CHAT_MODEL,
+      messages: messages as never,
+      temperature: 0.2,
+      max_tokens: 40,
+    } as never);
+    const text = (response as { choices: { message: { content: string } }[] }).choices[0]?.message?.content ?? "";
+    return text.trim();
+  } catch (error) {
+    console.warn("[rag] image search-term detection failed", error);
+    return "";
   }
 }
 

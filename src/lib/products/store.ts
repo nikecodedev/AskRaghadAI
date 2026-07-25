@@ -13,10 +13,22 @@ function productScore(product: ProductRow, query: string) {
   const q = query.toLowerCase();
   const text =
     `${product.nameEn} ${product.nameAr} ${product.descriptionEn ?? ""} ${product.descriptionAr ?? ""}`.toLowerCase();
+  const subcategoryText = (product.subcategory ?? "").toLowerCase();
+  const tagsText = (product.tags ?? "").toLowerCase();
 
   let score =
     (text.includes(q) ? 5 : 0) +
     q.split(/\s+/).filter((w) => w.length > 2 && text.includes(w)).length;
+
+  // A specific request like "abaya" should strongly prefer a partner whose
+  // sheet subcategory/tags actually say Abaya, over a generic marketplace
+  // (Amazon, Noon) that only matches on loose keyword overlap.
+  if (subcategoryText) {
+    score += q.split(/\s+/).filter((w) => w.length > 2 && subcategoryText.includes(w)).length * 6;
+  }
+  if (tagsText) {
+    score += q.split(/\s+/).filter((w) => w.length > 2 && tagsText.includes(w)).length * 4;
+  }
 
   // Prefer perfume-named partners when the user asks for perfume / عطر.
   if (PERFUME_HINT.test(query) && PERFUME_HINT.test(text)) score += 8;
