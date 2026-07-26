@@ -16,7 +16,8 @@ type Doc = {
 export default function AdminFaqPage() {
   const { messages } = useApp();
   const [faqs, setFaqs] = useState<Doc[]>([]);
-  const [question, setQuestion] = useState("");
+  const [questionEn, setQuestionEn] = useState("");
+  const [questionAr, setQuestionAr] = useState("");
   const [answerEn, setAnswerEn] = useState("");
   const [answerAr, setAnswerAr] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,28 +35,30 @@ export default function AdminFaqPage() {
 
   const resetForm = () => {
     setEditingId(null);
-    setQuestion("");
+    setQuestionEn("");
+    setQuestionAr("");
     setAnswerEn("");
     setAnswerAr("");
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || (!answerEn.trim() && !answerAr.trim())) return;
+    if (!questionEn.trim() || (!answerEn.trim() && !answerAr.trim())) return;
 
-    const content = buildFaqContent(question, answerEn, answerAr);
+    const content = buildFaqContent(questionEn, questionAr, answerEn, answerAr);
+    const title = questionEn;
 
     if (editingId) {
       await fetch(`/api/admin/knowledge/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: question, content }),
+        body: JSON.stringify({ title, content }),
       });
     } else {
       await fetch("/api/admin/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: question, content, category: "faq" }),
+        body: JSON.stringify({ title, content, category: "faq" }),
       });
     }
 
@@ -69,7 +72,8 @@ export default function AdminFaqPage() {
     const data = await res.json();
     const parsed = parseFaqContent(data.document.content ?? "");
     setEditingId(id);
-    setQuestion(parsed.question || data.document.title);
+    setQuestionEn(parsed.questionEn || data.document.title);
+    setQuestionAr(parsed.questionAr);
     setAnswerEn(parsed.answerEn);
     setAnswerAr(parsed.answerAr);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -106,11 +110,19 @@ export default function AdminFaqPage() {
 
         <form onSubmit={submit} className="mt-6 luxury-card space-y-3 p-6">
           <input
-            placeholder={messages.admin.faqQuestion}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={messages.admin.faqQuestionEn}
+            value={questionEn}
+            onChange={(e) => setQuestionEn(e.target.value)}
             className="luxury-input"
+            dir="ltr"
             required
+          />
+          <input
+            placeholder={messages.admin.faqQuestionAr}
+            value={questionAr}
+            onChange={(e) => setQuestionAr(e.target.value)}
+            className="luxury-input"
+            dir="rtl"
           />
           <textarea
             placeholder={messages.admin.faqAnswerEn}

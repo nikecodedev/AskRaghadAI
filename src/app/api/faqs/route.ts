@@ -19,7 +19,9 @@ export async function GET(request: Request) {
       const content = doc.chunks.map((c) => c.content).join("\n\n");
       const parsed = parseFaqContent(content);
       const answer = locale === "ar" ? parsed.answerAr || parsed.answerEn : parsed.answerEn || parsed.answerAr;
-      const question = parsed.question || doc.title;
+      const question =
+        (locale === "ar" ? parsed.questionAr || parsed.questionEn : parsed.questionEn || parsed.questionAr) ||
+        doc.title;
       if (!answer) return null;
       return { q: question, a: answer };
     })

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import {
   Noto_Sans_Arabic,
@@ -62,6 +63,10 @@ export default async function RootLayout({
         <AppProviders initialLocale={locale}>
           <AuthProvider>{children}</AuthProvider>
         </AppProviders>
+        <Script
+          src="https://s.skimresources.com/js/306805X1795070.skimlinks.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
