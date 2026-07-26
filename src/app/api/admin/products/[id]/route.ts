@@ -24,6 +24,8 @@ export async function PUT(request: Request, { params }: Params) {
       currency: body.currency != null ? String(body.currency) : undefined,
       affiliateUrl: body.affiliateUrl !== undefined ? String(body.affiliateUrl) : undefined,
       discountCode: body.discountCode !== undefined ? String(body.discountCode) : undefined,
+      bundleId: body.bundleId !== undefined ? (body.bundleId ? String(body.bundleId) : null) : undefined,
+      itemRole: body.itemRole != null ? String(body.itemRole) : undefined,
       active: body.active !== undefined ? Boolean(body.active) : undefined,
     },
   });

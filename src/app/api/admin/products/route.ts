@@ -28,6 +28,8 @@ export async function POST(request: Request) {
       currency: String(body.currency ?? "SAR"),
       affiliateUrl: body.affiliateUrl ? String(body.affiliateUrl) : null,
       discountCode: body.discountCode ? String(body.discountCode) : null,
+      bundleId: body.bundleId ? String(body.bundleId) : null,
+      itemRole: body.itemRole ? String(body.itemRole) : "main",
       active: body.active !== false,
     },
   });
