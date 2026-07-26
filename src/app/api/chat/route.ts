@@ -160,6 +160,18 @@ export async function POST(request: Request) {
     let fallbackGrid = false;
     let isBundle = false;
 
+    // The model itself found real products via find_products, but sometimes
+    // forgets to place any [[card:ID]] / [[bundle:...]] placeholder in its
+    // final text at all — usedProductIds is non-empty, but nothing in the
+    // reply actually references them, so zero cards would render. Show what
+    // was genuinely found as a plain grid rather than silently losing it —
+    // this is real, intent-matched data, not a guess, so it still respects
+    // "never show unrelated cards".
+    const hasInlineMarker = /\[\[(card|bundle):/.test(answer);
+    if (products.length > 0 && !hasInlineMarker) {
+      fallbackGrid = true;
+    }
+
     // The model made zero find_products calls (or none matched) — fall back
     // to intent-based search so a genuine shopping question never ends up
     // with no cards at all, same as a query with no inline references. Skip
