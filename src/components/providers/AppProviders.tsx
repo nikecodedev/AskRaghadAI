@@ -47,7 +47,12 @@ function applySettingOverrides(
   if (val("about.introBody")) next.about.introBody = val("about.introBody")!;
   if (val("about.missionBody")) next.about.missionBody = val("about.missionBody")!;
   if (val("vision.subtitle")) next.vision.subtitle = val("vision.subtitle")!;
+  if (val("vision.leadTitle")) next.vision.leadTitle = val("vision.leadTitle")!;
   if (val("vision.leadBody")) next.vision.leadBody = val("vision.leadBody")!;
+  if (val("vision.futureTitle")) next.vision.futureTitle = val("vision.futureTitle")!;
+  if (val("vision.futureBody")) next.vision.futureBody = val("vision.futureBody")!;
+  if (val("vision.promiseTitle")) next.vision.promiseTitle = val("vision.promiseTitle")!;
+  if (val("vision.promiseBody")) next.vision.promiseBody = val("vision.promiseBody")!;
   if (val("contact.subtitle")) next.contact.subtitle = val("contact.subtitle")!;
   if (overrides["support.email"]) next.contact.supportEmail = overrides["support.email"];
 

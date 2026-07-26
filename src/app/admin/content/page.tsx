@@ -17,7 +17,12 @@ function buildFields() {
     { key: "about.introBody", section: "aboutSection", label: "Intro text", defaultEn: en.about.introBody, defaultAr: ar.about.introBody, multiline: true },
     { key: "about.missionBody", section: "aboutSection", label: "Mission text", defaultEn: en.about.missionBody, defaultAr: ar.about.missionBody, multiline: true },
     { key: "vision.subtitle", section: "visionSection", label: "Subtitle", defaultEn: en.vision.subtitle, defaultAr: ar.vision.subtitle, multiline: true },
-    { key: "vision.leadBody", section: "visionSection", label: "Main text", defaultEn: en.vision.leadBody, defaultAr: ar.vision.leadBody, multiline: true },
+    { key: "vision.leadTitle", section: "visionSection", label: "Block 1 title (Where we are heading)", defaultEn: en.vision.leadTitle, defaultAr: ar.vision.leadTitle },
+    { key: "vision.leadBody", section: "visionSection", label: "Block 1 text (Where we are heading)", defaultEn: en.vision.leadBody, defaultAr: ar.vision.leadBody, multiline: true },
+    { key: "vision.futureTitle", section: "visionSection", label: "Block 2 title (The experience we are building)", defaultEn: en.vision.futureTitle, defaultAr: ar.vision.futureTitle },
+    { key: "vision.futureBody", section: "visionSection", label: "Block 2 text (The experience we are building)", defaultEn: en.vision.futureBody, defaultAr: ar.vision.futureBody, multiline: true },
+    { key: "vision.promiseTitle", section: "visionSection", label: "Block 3 title (Our Promise)", defaultEn: en.vision.promiseTitle, defaultAr: ar.vision.promiseTitle },
+    { key: "vision.promiseBody", section: "visionSection", label: "Block 3 text (Our Promise)", defaultEn: en.vision.promiseBody, defaultAr: ar.vision.promiseBody, multiline: true },
     { key: "contact.subtitle", section: "contactSection", label: "Subtitle", defaultEn: en.contact.subtitle, defaultAr: ar.contact.subtitle, multiline: true },
   ];
 }
