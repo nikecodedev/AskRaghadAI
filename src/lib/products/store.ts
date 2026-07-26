@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { resolveProductCategory } from "@/lib/products/intent";
-import { identifyBundleComponents } from "@/lib/rag/openai-rag";
+import { identifyBundleComponents, identifySearchTerms } from "@/lib/rag/openai-rag";
 
 export const CHAT_PRODUCTS_LIMIT = 2;
 const MAX_AUTO_BUNDLE_ITEMS = 4;
@@ -72,18 +72,17 @@ async function searchProducts(query: string, category?: string, take = 8): Promi
     AND: [{ affiliateUrl: { not: null } }, { NOT: { affiliateUrl: "" } }],
   };
 
-  const withPhotos = await prisma.product.findMany({
-    where: { ...shoppable, NOT: { OR: [{ imageUrl: null }, { imageUrl: "" }] } },
-    orderBy: { updatedAt: "desc" },
-    take,
-  });
-
-  const pool =
-    withPhotos.length > 0
-      ? withPhotos
-      : await prisma.product.findMany({ where: shoppable, orderBy: { updatedAt: "desc" }, take });
-
-  return rankByQueryRelevance(pool, query);
+  // Rank the FULL shoppable pool for the category (not just an arbitrary
+  // "most recently updated" slice, and not photo-having rows only). The
+  // sheet sometimes has two rows per partner — one with an image, one with
+  // the real subcategory/tags but no image — and a hard photo-first filter
+  // was silently discarding the far more relevant tag-matched row whenever
+  // any photo row existed. productScore() already rewards a real photo
+  // (+3), so a genuine match with no photo still loses to an equally
+  // relevant match that has one — it just no longer loses to an irrelevant
+  // partner purely because that partner happens to have a stock photo.
+  const pool = await prisma.product.findMany({ where: shoppable, orderBy: { updatedAt: "desc" } });
+  return rankByQueryRelevance(pool, query).slice(0, take);
 }
 
 /**
@@ -101,12 +100,59 @@ async function autoAssembleBundle(
   const components = await identifyBundleComponents(query, locale);
   if (components.length < 2) return [];
 
+  // Resolve a category once from the overall request (or the first piece
+  // that happens to match a keyword) and reuse it for every piece, instead
+  // of gating each piece behind its own keyword match. Generic AI-generated
+  // piece names like "veil" or "clutch" often don't hit CATEGORY_KEYWORDS on
+  // their own even though the bundle as a whole clearly belongs to one
+  // category — without this, one ungated piece silently drops the whole
+  // bundle below the 2-item threshold and the assembly is thrown away.
+  const sharedCategory =
+    resolveProductCategory(query, category) ??
+    components.reduce<string | undefined>(
+      (found, piece) => found ?? resolveProductCategory(piece),
+      undefined,
+    );
+  const effectiveCategory = sharedCategory ?? category;
+
   const seenIds = new Set<string>();
   const items: ProductRow[] = [];
 
   for (const piece of components) {
     if (items.length >= MAX_AUTO_BUNDLE_ITEMS) break;
-    const matches = await searchProducts(piece, category, 6);
+    const matches = await searchProducts(piece, effectiveCategory, 6);
+    const best = matches.find((p) => !seenIds.has(p.id));
+    if (best) {
+      seenIds.add(best.id);
+      items.push(best);
+    }
+  }
+
+  return items;
+}
+
+/**
+ * AI-assisted fallback used only when plain keyword matching finds nothing.
+ * Handles natural phrasing that doesn't hit CATEGORY_KEYWORDS at all (e.g.
+ * "what should I wear to a wedding?"), for both single-item and multi-item
+ * (non-bundle) requests. Returns [] if identifySearchTerms decides the
+ * message isn't a product request at all.
+ */
+async function aiAssistedSearch(
+  query: string,
+  category: string | undefined,
+  locale: "en" | "ar",
+  limit: number,
+): Promise<ProductRow[]> {
+  const terms = await identifySearchTerms(query, locale);
+  if (terms.length === 0) return [];
+
+  const seenIds = new Set<string>();
+  const items: ProductRow[] = [];
+
+  for (const term of terms) {
+    if (items.length >= limit) break;
+    const matches = await searchProducts(term, category, 6);
     const best = matches.find((p) => !seenIds.has(p.id));
     if (best) {
       seenIds.add(best.id);
@@ -124,19 +170,18 @@ export async function getProductsForChat(options: {
   locale?: "en" | "ar";
 }): Promise<{ products: ProductRow[]; isBundle: boolean }> {
   const { query = "", category, limit = CHAT_PRODUCTS_LIMIT, locale = "en" } = options;
+  const wantsBundle = BUNDLE_INTENT_HINT.test(query);
   const ranked = await searchProducts(query, category, Math.max(limit * 4, 8));
 
-  if (ranked.length === 0) {
-    return { products: [], isBundle: false };
-  }
-
-  const topMatch = ranked[0];
-  const wantsBundle = BUNDLE_INTENT_HINT.test(query);
-
+  // Bundle intent is checked independently of whether the raw query resolved
+  // a category above — autoAssembleBundle does its own per-piece category
+  // resolution via the AI, so it can succeed even when the full raw query
+  // ("plan my trip", "wedding outfit please") doesn't hit any single keyword.
   if (wantsBundle) {
+    const topMatch = ranked[0];
     // Prefer a real, deliberately pre-linked set (e.g. an official package
     // deal) when one exists — only fall back to auto-assembly otherwise.
-    if (topMatch.bundleId) {
+    if (topMatch?.bundleId) {
       const group = await fetchBundleGroup(topMatch.bundleId);
       if (group.length > 1) return { products: group, isBundle: true };
     }
@@ -145,7 +190,19 @@ export async function getProductsForChat(options: {
     if (assembled.length > 1) return { products: assembled, isBundle: true };
   }
 
-  return { products: ranked.slice(0, limit), isBundle: false };
+  if (ranked.length > 0) {
+    return { products: ranked.slice(0, limit), isBundle: false };
+  }
+
+  // Keyword matching found nothing at all — most real chat messages don't
+  // use our exact keyword list, so ask the AI what's actually being asked
+  // for before giving up and leaving the reply with no product cards.
+  const aiFound = await aiAssistedSearch(query, category, locale, wantsBundle ? MAX_AUTO_BUNDLE_ITEMS : limit);
+  if (aiFound.length > 0) {
+    return { products: aiFound, isBundle: wantsBundle && aiFound.length > 1 };
+  }
+
+  return { products: [], isBundle: false };
 }
 
 export async function listAllProducts() {

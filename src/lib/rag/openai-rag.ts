@@ -482,9 +482,12 @@ export async function identifyBundleComponents(
   query: string,
   locale: "en" | "ar" = "en",
 ): Promise<string[]> {
+  // Always ask for the pieces in English, even for an Arabic request: these
+  // terms are only used internally to search the product catalog, whose
+  // subcategory/tags data is English-only, and never shown to the user.
   const prompt =
     locale === "ar"
-      ? `المستخدم يطلب طقماً أو مجموعة كاملة: "${query}"\nاذكر 2 إلى 4 قطع أو عناصر تتكوّن منها هذه المجموعة عادةً، كل عنصر بكلمتين كحد أقصى. أجب بقائمة مفصولة بفواصل فقط، بدون شرح. مثال: عباية، حقيبة، حذاء`
+      ? `المستخدم يطلب طقماً أو مجموعة كاملة (بالعربية): "${query}"\nاذكر 2 إلى 4 قطع أو عناصر تتكوّن منها هذه المجموعة عادةً. اكتب كل عنصر بالإنجليزية فقط (بكلمتين كحد أقصى لكل عنصر)، لأن هذه الكلمات تُستخدم للبحث في قاعدة بيانات إنجليزية ولن تظهر للمستخدم. أجب بقائمة إنجليزية مفصولة بفواصل فقط، بدون شرح. مثال: abaya, handbag, shoes`
       : `The user is asking for a full set or bundle: "${query}"\nList 2 to 4 individual pieces this set would typically include, each in 1-2 words. Reply as a comma-separated list only, no explanation. Example: abaya, handbag, shoes`;
 
   try {
@@ -507,6 +510,54 @@ export async function identifyBundleComponents(
       .slice(0, 4);
   } catch (error) {
     console.warn("[rag] bundle component detection failed", error);
+    return [];
+  }
+}
+
+/**
+ * Fallback used only when plain keyword matching (CATEGORY_KEYWORDS in
+ * lib/products/intent.ts) finds nothing at all. Real chat messages rarely
+ * use our exact keyword list ("what should I wear to a wedding" has no
+ * literal "abaya"/"outfit"), so without this the product search comes back
+ * empty and the AI answers with text-only advice and no cards. Returns 1-3
+ * short search phrases for the item(s) implied by the message, or [] if the
+ * message isn't actually a product/shopping/style request (FAQ, greeting,
+ * etc.) so we don't waste a call or surface irrelevant cards.
+ */
+export async function identifySearchTerms(
+  query: string,
+  locale: "en" | "ar" = "en",
+): Promise<string[]> {
+  // Always ask for the search phrases in English, even for an Arabic
+  // message: these terms are only used internally to search the product
+  // catalog, whose subcategory/tags data is English-only, and never shown
+  // to the user — the actual reply is generated separately in their language.
+  const prompt =
+    locale === "ar"
+      ? `رسالة المستخدم (بالعربية): "${query}"\nإذا كانت هذه الرسالة تطلب توصية منتج، ملابس، عناية، منزل، مستلزمات أطفال، أو سفر (حتى لو لم تذكر اسم منتج معيّن)، اذكر 1 إلى 3 عبارات بحث قصيرة بالإنجليزية فقط (بحد أقصى كلمتين لكل عبارة) تصف المنتج أو المنتجات الفعلية التي تناسب طلبه، لأن هذه الكلمات تُستخدم للبحث في قاعدة بيانات إنجليزية ولن تظهر للمستخدم. مثال: "ماذا ألبس لحفل زفاف؟" -> evening dress, embroidered abaya. إن لم تكن الرسالة طلب منتج على الإطلاق (سؤال عام، تحية، سؤال عن الخدمة)، أجب بكلمة NONE فقط. أجب بقائمة إنجليزية مفصولة بفواصل أو NONE، بدون أي شرح.`
+      : `User message: "${query}"\nIf this message is asking for a product, clothing, beauty, skincare, home, kids, or travel recommendation (even if it doesn't name a specific product), list 1 to 3 short search phrases (max 2 words each) describing the actual product(s) that would suit the request. Example: "what should I wear to a wedding?" -> evening dress, embroidered abaya. If the message is not a product request at all (general question, greeting, question about the service itself), reply with just NONE. Reply as a comma-separated list or NONE, no explanation.`;
+
+  try {
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY!.trim(),
+      timeout: 15_000,
+      maxRetries: 0,
+    });
+    const response = await client.chat.completions.create({
+      model: CHAT_MODEL,
+      messages: [{ role: "user", content: prompt }] as never,
+      temperature: 0.3,
+      max_tokens: 40,
+    } as never);
+    const text = (response as { choices: { message: { content: string } }[] }).choices[0]?.message?.content ?? "";
+    if (!text.trim() || /^none$/i.test(text.trim())) return [];
+    return text
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !/^none$/i.test(s))
+      .slice(0, 3);
+  } catch (error) {
+    console.warn("[rag] search-term detection failed", error);
     return [];
   }
 }
