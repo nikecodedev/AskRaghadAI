@@ -3,15 +3,15 @@ import { expandQueryForRetrieval } from "@/lib/rag/dialect";
 import { getActiveIndexedChunks } from "@/lib/rag/store";
 import {
   detectImageSearchTerms,
-  generateAnswer,
-  generateVisionAnswer,
+  generateAnswerWithTools,
   isOpenAIConfigured,
   retrieveChunks,
 } from "@/lib/rag/openai-rag";
-import type { IndexedChunk } from "@/lib/rag/openai-rag";
-import { getProductsForChat } from "@/lib/products/store";
+import type { IndexedChunk, ToolProductMatch } from "@/lib/rag/openai-rag";
+import { findProductsForItem, getProductsForChat } from "@/lib/products/store";
 import { getBundledProductsForChat } from "@/lib/products/fallback-catalog";
 import { toChatProduct } from "@/lib/products/types";
+import type { ChatProduct } from "@/lib/products/types";
 import {
   getCategoryFallbackMessage,
   stripRawUrls,
@@ -46,9 +46,9 @@ export async function POST(request: Request) {
     }
 
     // When an image is attached, describe it first so the description can
-    // actually drive product/knowledge matching below — previously the image
-    // only reached the final answer call, so uploading a photo with no typed
-    // caption matched products against an empty query.
+    // actually drive RAG/product matching below — previously the image only
+    // reached the final answer call, so uploading a photo with no typed
+    // caption matched against an empty query.
     let searchQuery = query;
     if (image) {
       const detected = await detectImageSearchTerms(image, locale);
@@ -57,17 +57,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Load RAG chunks and product matches in parallel (saves ~1–3s vs sequential).
-    const [chunks, dbProductsResult] = await Promise.all([
-      getActiveIndexedChunks().catch((ragError) => {
-        console.error("[chat] rag load", ragError);
-        return [] as IndexedChunk[];
-      }),
-      getProductsForChat({ query: searchQuery, category, locale }).catch((productError) => {
-        console.error("[chat] products", productError);
-        return { products: [], isBundle: false } as Awaited<ReturnType<typeof getProductsForChat>>;
-      }),
-    ]);
+    const chunks = await getActiveIndexedChunks().catch((ragError) => {
+      console.error("[chat] rag load", ragError);
+      return [] as IndexedChunk[];
+    });
 
     let retrieved: IndexedChunk[] = [];
     if (chunks.length > 0) {
@@ -79,21 +72,34 @@ export async function POST(request: Request) {
       }
     }
 
-    let dbProducts = dbProductsResult.products;
-    let isBundle = dbProductsResult.isBundle;
-    if (dbProducts.length === 0) {
-      dbProducts = getBundledProductsForChat({ query: searchQuery, category });
-      isBundle = false;
-    }
-    const partnerNames = dbProducts.map((p) =>
-      locale === "ar" ? p.nameAr : p.nameEn,
-    );
+    // The AI decides for itself which specific products to surface by
+    // calling find_products for each item it actually recommends, right as
+    // it writes about it — this map collects the full product rows behind
+    // each id the tool returns, so we can build real ChatProduct cards for
+    // exactly (and only) what the reply ends up referencing inline.
+    const fullProductRows = new Map<string, ChatProduct>();
+    const lookupProducts = async (item: string): Promise<ToolProductMatch[]> => {
+      const matches = await findProductsForItem(item, category, 3).catch((error) => {
+        console.error("[chat] product tool lookup", error);
+        return [];
+      });
+      matches.forEach((m) => fullProductRows.set(m.id, toChatProduct(m, locale)));
+      return matches.map((m) => ({ id: m.id, nameEn: m.nameEn, nameAr: m.nameAr }));
+    };
 
     let rawAnswer: string;
+    let usedProductIds: string[];
     try {
-      rawAnswer = image
-        ? await generateVisionAnswer(query, image, retrieved, locale, category, partnerNames)
-        : await generateAnswer(query, retrieved, locale, category, partnerNames);
+      const result = await generateAnswerWithTools(
+        query,
+        retrieved,
+        locale,
+        category,
+        lookupProducts,
+        image,
+      );
+      rawAnswer = result.text;
+      usedProductIds = result.usedProductIds;
     } catch (aiError) {
       console.error("[chat] generate", aiError);
       return NextResponse.json({
@@ -126,11 +132,34 @@ export async function POST(request: Request) {
       }
     }
 
-    const products = dbProducts.map((p) => toChatProduct(p, locale));
+    let products = usedProductIds.map((id) => fullProductRows.get(id)).filter((p): p is ChatProduct => Boolean(p));
+    let fallbackGrid = false;
+    let isBundle = false;
+
+    // The model made zero find_products calls (or none matched) — fall back
+    // to intent-based search so a genuine shopping question never ends up
+    // with no cards at all, same as a query with no inline references.
+    if (products.length === 0) {
+      const fallback = await getProductsForChat({ query: searchQuery, category, locale }).catch((error) => {
+        console.error("[chat] fallback products", error);
+        return { products: [], isBundle: false };
+      });
+      let fallbackRows = fallback.products;
+      isBundle = fallback.isBundle;
+      if (fallbackRows.length === 0) {
+        fallbackRows = getBundledProductsForChat({ query: searchQuery, category });
+        isBundle = false;
+      }
+      if (fallbackRows.length > 0) {
+        products = fallbackRows.map((p) => toChatProduct(p, locale));
+        fallbackGrid = true;
+      }
+    }
 
     return NextResponse.json({
       answer,
       products,
+      fallbackGrid,
       isBundle,
       suggestCategories: false,
       sources: retrieved.map((c) => ({

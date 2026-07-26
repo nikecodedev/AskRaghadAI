@@ -34,7 +34,7 @@ export function BundleCard({ products }: { products: ChatProduct[] }) {
   const totalEntries = Object.entries(totalsByCurrency);
 
   return (
-    <div className="chat-bubble-assistant mt-3 overflow-hidden rounded-2xl border border-[#c9a962]/40 bg-white shadow-sm">
+    <div className="my-2 overflow-hidden rounded-2xl border border-[#c9a962]/40 bg-white shadow-sm">
       <div className="border-b border-[#ddd0b8]/50 bg-[#faf6ef] px-4 py-2.5">
         <p className="text-sm font-semibold text-[#1f5240]">{messages.products.bundleTitle}</p>
         <p className="text-xs text-[#7a8b82]">{messages.products.bundleHint}</p>

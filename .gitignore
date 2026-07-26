@@ -49,6 +49,9 @@ askraghadai-sheet-*.json
 # vercel
 .vercel
 
+# local deployment zip staging (built and uploaded manually)
+/deploy-out/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import https from "https";
 import type { TextChunk } from "./chunker";
 import { enrichChunkWithSynonyms } from "./dialect";
-import { chatViaPowerShell, shouldUsePowerShellOpenAI } from "./powershell-openai";
 import { cosineSimilarity, hybridMerge, keywordScore } from "./hybrid-search";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
@@ -221,11 +220,7 @@ export async function retrieveChunks(
   return merged.map((r) => r.item);
 }
 
-function buildSystemPrompt(
-  locale: "en" | "ar",
-  category?: string,
-  hasAffiliateCards = false,
-): string {
+function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
   const categoryHint = category
     ? locale === "ar"
       ? `\nالقسم الحالي الذي يتصفحه المستخدم: ${category}. ركّز توصياتك فيه عند المناسبة.`
@@ -237,23 +232,29 @@ function buildSystemPrompt(
       ? "الأزياء والعبايات، الجمال والعطور، العناية بالبشرة، ديكور المنزل والمطبخ، مستلزمات الأطفال والرضع، تخطيط السفر الذكي"
       : "Fashion & Abayas, Beauty & Scents, Skincare, Home Decor & Kitchen, Kids & Baby Essentials, Smart Travel Planning";
 
-  const cardRulesAr = hasAffiliateCards
-    ? `- لا تضع روابط URL خام أبداً. اذكر أسماء المنتجات أو المتاجر وأكواد الخصم فقط؛ الروابط تظهر تلقائياً في بطاقات المنتجات أسفل الرد.
-- عندما تتوفر بطاقات شركاء أسفل الرد، ادعُ المستخدم بوضوح للضغط على صورة المنتج أو زر «تسوق الآن» للانتقال إلى رابط الشريك والشراء.
-- رشّح فقط من قائمة الشركاء المعتمدين المذكورة أدناه. لا تخترع متجراً أو رابطاً غير موجود في القائمة، ولا تفترض توفر متجر لم يُذكر.`
-    : `- لا تضع روابط URL خام أبداً.
-- لا تدّعِ أن هناك بطاقات منتجات أو روابط شراء أسفل الرد إن لم تكن متوفرة.
-- لا تقترح أبداً أن يبحث المستخدم بنفسه على جوجل أو أمازون أو أي منصة عامة أخرى؛ هذا ليس دورك.
-- بدلاً من ذلك، قدّم نصيحة مفيدة وحقيقية حول ما يسأل عنه، ثم ادعُه بلطف لاختيار القسم الأنسب من الصفحة الرئيسية ليصله بأحدث الشركاء المتاحين في هذا المجال.`;
+  const cardRulesAr = `- لديك أداة find_products. قبل أن تذكر اسم أي متجر أو ماركة أو منتج محدد كترشيح، يجب أن تستدعي find_products أولاً بعبارة بحث قصيرة (١ إلى ٤ كلمات) عن ذاك العنصر بالذات. لا ترشّح متجراً أو ماركة معينة من معرفتك العامة فقط دون استدعاء الأداة أولاً.
+- إذا أعادت الأداة نتائج، اذكر بالاسم فقط الشركاء الذين أعادتهم الأداة (لا تخترع أسماء أخرى)، ثم ضع مباشرة بعد ذلك عنصراً نائباً واحداً يتضمن معرّف (ID) كل شريك ذكرته بالاسم:
+  - [[card:ID]] عندما تذكر شريكاً واحداً فقط.
+  - [[bundle:ID1,ID2,ID3]] عندما تذكر أكثر من شريك بالاسم لنفس العنصر أو لمجموعة عناصر معاً — ضع معرّفات جميع من ذكرتهم بالاسم، لا معرّف واحد فقط.
+  استخدم المعرّف كما أعادته الأداة بالضبط. لا تخترع معرّفاً أبداً، ولا تكرره، ولا تضف إليه أي نص. كل اسم شريك تكتبه يجب أن يكون معرّفه ضمن عنصر نائب قريب.
+- ضع العنصر النائب في سطر مستقل واضح (بعد عنوان عريض مثلاً)، لا داخل عنصر قائمة مرقّمة، لأن ذلك يكسر ترقيم القائمة في الواجهة.
+- إن لم تُعِد الأداة أي نتيجة لعنصر معيّن، لا تدّعِ وجود منتج أو رابط له ولا تذكر اسم متجر من عندك؛ فقط قدّم نصيحة عامة نصية لذلك العنصر بدون اسم متجر أو عنصر نائب.
+- لا تستدعِ find_products إلا لعنصر تنوي ترشيحه فعلاً بالاسم، ولا تستدعها لكل موضوع تذكره بشكل عابر.
+- لا تضع روابط URL خام أبداً؛ روابط الشراء تظهر تلقائياً من خلال العناصر النائبة أعلاه.
+- لا تقترح أبداً أن يبحث المستخدم بنفسه على جوجل أو أمازون أو أي منصة عامة أخرى؛ رشّح فقط ما تعيده الأداة فعلياً.
+- لا تقل أبداً أنك ستبحث الآن أو تطلب من المستخدم الانتظار أو تقول "دقيقة من فضلك"؛ فقط استدعِ find_products مباشرة وأكمل ردّك بالنتيجة في نفس الرد، دون أي فجوة ظاهرة.`;
 
-  const cardRulesEn = hasAffiliateCards
-    ? `- Never paste raw URLs. Mention product or store names and discount codes only; links appear automatically in the product cards below your reply.
-- When partner cards are shown below your reply, clearly invite the user to tap the product photo or the "Shop now" button to open the affiliate link and buy.
-- Only recommend partners from the approved list below. Never invent a store or link that isn't in that list, and never assume a store is available if it wasn't mentioned.`
-    : `- Never paste raw URLs.
-- Do not claim that product cards or shop links appear below the reply when none are available.
-- Never suggest the user search on Google, Amazon, or any other general platform themselves, that is not your role.
-- Instead, give real, useful advice about what they're asking, then warmly invite them to browse the most relevant category from the homepage to be connected with the latest available partners in that area.`;
+  const cardRulesEn = `- You have a tool called find_products. Before naming any specific store, brand, or product as a recommendation, you must call find_products first with a short 1-4 word search phrase for that exact item. Never name a specific store or brand from your own general knowledge without calling the tool first.
+- If the tool returns results, name ONLY the partners the tool actually returned (never invent other names), then place immediately after that one placeholder containing every partner's id you named by name:
+  - [[card:ID]] when you named exactly one partner.
+  - [[bundle:ID1,ID2,ID3]] when you named more than one partner for that item or set — include ALL of their ids, not just one.
+  Use the exact id the tool returned. Never invent an id, never repeat one, never add extra text around it. Every partner name you write must have its id in a nearby placeholder.
+- Put the placeholder on its own clear line (e.g. after a bold label), never inside a numbered list item — that breaks the list's numbering in the UI.
+- If the tool returns no result for an item, do not claim a product or link exists for it, and do not name a store or brand yourself — just give general text advice for that one item with no store name and no placeholder.
+- Only call find_products for an item you actually intend to recommend by name, not for every topic you casually mention.
+- Never paste raw URLs — buy links render automatically wherever you place a placeholder above.
+- Never suggest the user search on Google, Amazon, or any other general platform themselves — only recommend what the tool actually returns.
+- Never narrate that you are about to search, ask the user to wait, or say "let me look that up" — just call find_products directly and continue your answer with the result in the same turn, with no visible gap.`;
 
   return locale === "ar"
     ? `أنت رغد (Raghad AI) — المستشار الذكي الفاخر في Askraghadai.com. أنت خبير واثق وودود في الموضة والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر.${categoryHint}
@@ -291,122 +292,101 @@ ${cardRulesEn}
 - Available categories when useful: ${categoryList}.`;
 }
 
-function buildUserContent(
-  query: string,
-  context: string,
-  locale: "en" | "ar",
-  affiliatePartners: string[] = [],
-): string {
+function buildUserContent(query: string, context: string, locale: "en" | "ar"): string {
   const label = locale === "ar" ? "معلومات قاعدة المعرفة" : "Knowledge base";
   const none = locale === "ar" ? "(لا توجد معلومات محددة — اعتمد على خبرتك)" : "(No specific entries — use your expertise)";
   const questionLabel = locale === "ar" ? "سؤال المستخدم" : "User question";
 
-  let partnersBlock = "";
-  if (affiliatePartners.length > 0) {
-    const list = affiliatePartners.map((p) => `- ${p}`).join("\n");
-    partnersBlock =
-      locale === "ar"
-        ? `\n\nشركاء التسوق المعتمدون لدينا (روابطهم القابلة للنقر تظهر تلقائياً كبطاقات أسفل ردك مباشرة):\n${list}\nرشّح هؤلاء الشركاء بالاسم داخل نصيحتك وادعُ المستخدم للضغط على البطاقات أسفل الرد للتسوق عبرها. لا تخترع متاجر أو روابط أخرى.`
-        : `\n\nOur approved shopping partners (their clickable links appear automatically as cards directly below your reply):\n${list}\nRecommend these partners by name within your advice and invite the user to tap the cards below to shop through them. Do not invent other stores or links.`;
-  }
-
-  return `${label}:\n${context.trim() || none}${partnersBlock}\n\n${questionLabel}: ${query}`;
+  return `${label}:\n${context.trim() || none}\n\n${questionLabel}: ${query}`;
 }
 
-async function runChat(chatPayload: {
-  model: string;
-  messages: unknown[];
-  temperature: number;
-}): Promise<string> {
-  if (shouldUsePowerShellOpenAI()) {
-    try {
-      return await chatViaPowerShell(chatPayload as never);
-    } catch (error) {
-      console.warn("[rag] PowerShell chat failed:", error);
-    }
-  }
+export type ToolProductMatch = { id: string; nameEn: string; nameAr: string };
+export type ToolProductLookup = (item: string) => Promise<ToolProductMatch[]>;
 
-  try {
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY!.trim(),
-      timeout: 45_000,
-      maxRetries: 0,
-    });
-    const response = await client.chat.completions.create(chatPayload as never);
-    return (response as { choices: { message: { content: string } }[] }).choices[0]?.message?.content ?? "";
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    console.warn("[rag] Chat SDK failed, trying HTTPS...");
-    const response = await openaiPostViaHttps<{
-      choices: { message: { content: string } }[];
-    }>("/v1/chat/completions", chatPayload);
-    return response.choices[0]?.message?.content ?? "";
-  }
-}
+const MAX_TOOL_ITERATIONS = 6;
+const MAX_TOOL_CALLS_TOTAL = 8;
 
-export async function generateAnswer(
-  query: string,
-  contextChunks: IndexedChunk[],
-  locale: "en" | "ar" = "en",
-  category?: string,
-  affiliatePartners: string[] = []
-): Promise<string> {
-  const context = contextChunks.map((c) => c.content).join("\n\n---\n\n");
-
-  const messages = [
+function buildProductTools() {
+  return [
     {
-      role: "system" as const,
-      content: buildSystemPrompt(locale, category, affiliatePartners.length > 0),
+      type: "function" as const,
+      function: {
+        name: "find_products",
+        description:
+          "Search the real approved partner catalog for ONE specific item you are about to concretely recommend (e.g. \"flight to London\", \"eSIM UK\", \"embroidered abaya\", \"hotel in London\"). Call this once per distinct item, right before you mention it, then reference the returned id inline. Do not call this for generic topics you are not recommending a specific partner for.",
+        parameters: {
+          type: "object",
+          properties: {
+            item: {
+              type: "string",
+              description: "A short, specific search phrase for a single item, 1-4 words (e.g. 'eSIM UK', 'evening dress', 'flight to London').",
+            },
+          },
+          required: ["item"],
+        },
+      },
     },
-    { role: "user" as const, content: buildUserContent(query, context, locale, affiliatePartners) },
   ];
-
-  const chatPayload = { model: CHAT_MODEL, messages, temperature: 0.5 };
-
-  try {
-    return await runChat(chatPayload);
-  } catch (error) {
-    console.warn("[rag] Chat failed:", error);
-    if (locale === "ar") {
-      return contextChunks[0]?.content
-        ? `إليك ما يمكنني مشاركته الآن:\n\n${contextChunks[0].content}`
-        : "عذراً، تعذّر الاتصال بخدمة الذكاء الاصطناعي للحظات. يرجى إعادة إرسال سؤالك وسأساعدك فوراً.";
-    }
-    return contextChunks[0]?.content
-      ? `Here is what I can share right now:\n\n${contextChunks[0].content}`
-      : "Sorry, I couldn't reach the AI service for a moment. Please resend your question and I'll help right away.";
-  }
 }
 
-export async function generateVisionAnswer(
+type ChatCompletionResult = {
+  choices: {
+    message: {
+      content: string | null;
+      tool_calls?: { id: string; function: { name: string; arguments: string } }[];
+    };
+  }[];
+};
+
+/**
+ * Generates the chat reply and lets the model itself decide, in real time,
+ * which specific real products to surface — by calling find_products for
+ * each item it's actually recommending and placing an inline [[card:ID]] /
+ * [[bundle:ID1,ID2]] placeholder right where it mentions that item. Replaces
+ * the old approach of pre-fetching a fixed product set before the model ever
+ * ran and appending it after the reply regardless of what got said, which is
+ * what caused unrelated cards to show up at the bottom of every message.
+ */
+export async function generateAnswerWithTools(
   query: string,
-  imageDataUrl: string,
   contextChunks: IndexedChunk[],
-  locale: "en" | "ar" = "en",
-  category?: string,
-  affiliatePartners: string[] = []
-): Promise<string> {
+  locale: "en" | "ar",
+  category: string | undefined,
+  lookupProducts: ToolProductLookup,
+  imageDataUrl?: string,
+): Promise<{ text: string; usedProductIds: string[] }> {
   const context = contextChunks.map((c) => c.content).join("\n\n---\n\n");
   const defaultQuery =
     locale === "ar"
       ? "حلّل هذه الصورة وقدّم توصيات مناسبة."
       : "Analyse this image and give suitable recommendations.";
+  const userText = buildUserContent(query || (imageDataUrl ? defaultQuery : query), context, locale);
 
-  const messages = [
-    {
-      role: "system" as const,
-      content: buildSystemPrompt(locale, category, affiliatePartners.length > 0),
-    },
-    {
-      role: "user" as const,
-      content: [
-        { type: "text", text: buildUserContent(query || defaultQuery, context, locale, affiliatePartners) },
+  const userContent = imageDataUrl
+    ? [
+        { type: "text", text: userText },
         { type: "image_url", image_url: { url: imageDataUrl } },
-      ],
-    },
+      ]
+    : userText;
+
+  const messages: {
+    role: "system" | "user" | "assistant" | "tool";
+    content: unknown;
+    tool_calls?: unknown;
+    tool_call_id?: string;
+  }[] = [
+    { role: "system", content: buildSystemPrompt(locale, category) },
+    { role: "user", content: userContent },
   ];
 
-  const chatPayload = { model: CHAT_MODEL, messages, temperature: 0.5 };
+  const tools = buildProductTools();
+  const usedProducts = new Map<string, ToolProductMatch>();
+  let totalToolCalls = 0;
+
+  const fallbackText = () =>
+    locale === "ar"
+      ? "عذراً، تعذّر الاتصال بخدمة الذكاء الاصطناعي للحظات. يرجى إعادة إرسال سؤالك وسأساعدك فوراً."
+      : "Sorry, I couldn't reach the AI service for a moment. Please resend your question and I'll help right away.";
 
   try {
     const client = new OpenAI({
@@ -414,13 +394,65 @@ export async function generateVisionAnswer(
       timeout: 60_000,
       maxRetries: 1,
     });
-    const response = await client.chat.completions.create(chatPayload as never);
-    return (response as { choices: { message: { content: string } }[] }).choices[0]?.message?.content ?? "";
+
+    for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+      const offerTools = totalToolCalls < MAX_TOOL_CALLS_TOTAL;
+      const response = await client.chat.completions.create({
+        model: CHAT_MODEL,
+        messages,
+        temperature: 0.5,
+        ...(offerTools ? { tools, tool_choice: "auto" } : {}),
+      } as never);
+
+      const message = (response as ChatCompletionResult).choices[0]?.message;
+      const toolCalls = message?.tool_calls;
+
+      if (!toolCalls || toolCalls.length === 0) {
+        return { text: message?.content ?? "", usedProductIds: [...usedProducts.keys()] };
+      }
+
+      messages.push({ role: "assistant", content: message.content ?? null, tool_calls: toolCalls });
+
+      for (const call of toolCalls) {
+        totalToolCalls++;
+        let item = "";
+        try {
+          item = String(JSON.parse(call.function.arguments || "{}").item ?? "").slice(0, 60);
+        } catch {
+          // malformed tool arguments — treat as no item, return no results below
+        }
+
+        let results: ToolProductMatch[] = [];
+        if (item) {
+          try {
+            results = await lookupProducts(item);
+          } catch (lookupError) {
+            console.warn("[rag] product tool lookup failed", lookupError);
+          }
+        }
+        results.forEach((r) => usedProducts.set(r.id, r));
+
+        const toolResultPayload =
+          results.length > 0
+            ? JSON.stringify(results.map((r) => ({ id: r.id, name: locale === "ar" ? r.nameAr : r.nameEn })))
+            : "NONE_FOUND";
+
+        messages.push({ role: "tool", tool_call_id: call.id, content: toolResultPayload });
+      }
+    }
+
+    // Model kept calling tools past the iteration cap — force one final
+    // plain-text turn so the user still gets a real answer either way.
+    const final = await client.chat.completions.create({
+      model: CHAT_MODEL,
+      messages,
+      temperature: 0.5,
+    } as never);
+    const finalText = (final as ChatCompletionResult).choices[0]?.message?.content ?? "";
+    return { text: finalText || fallbackText(), usedProductIds: [...usedProducts.keys()] };
   } catch (error) {
-    console.warn("[rag] Vision chat failed:", error);
-    return locale === "ar"
-      ? "عذراً، تعذّر تحليل الصورة الآن. يمكنك وصف ما تبحث عنه نصياً وسأساعدك فوراً."
-      : "Sorry, I couldn't analyse the image right now. Describe what you're looking for and I'll help right away.";
+    console.warn("[rag] tool-calling chat failed:", error);
+    return { text: fallbackText(), usedProductIds: [] };
   }
 }
 

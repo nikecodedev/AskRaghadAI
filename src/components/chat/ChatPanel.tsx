@@ -18,6 +18,7 @@ type ChatMessage = {
   content: string;
   image?: string;
   products?: ChatProduct[];
+  fallbackGrid?: boolean;
   isBundle?: boolean;
   suggestCategories?: boolean;
 };
@@ -168,6 +169,7 @@ export function ChatPanel() {
         role: "assistant",
         content: data.answer ?? data.error ?? "Error",
         products: data.products,
+        fallbackGrid: data.fallbackGrid,
         isBundle: data.isBundle,
         suggestCategories: data.suggestCategories,
       });
@@ -278,6 +280,7 @@ export function ChatPanel() {
                       content={prepareChatDisplayText(msg.content, locale)}
                       linkLabel={messages.chat.visitLink}
                       dir={dir}
+                      products={msg.products}
                     />
                   )}
                 </div>
@@ -289,7 +292,10 @@ export function ChatPanel() {
                     />
                   </div>
                 )}
-                {msg.products && msg.products.length > 0 && (
+                {/* Only shown when the AI made no relevant find_products calls of its
+                    own — a plain intent-matched fallback so a genuine shopping
+                    question never ends up with zero cards, not a routine dump. */}
+                {msg.fallbackGrid && msg.products && msg.products.length > 0 && (
                   msg.isBundle ? (
                     <BundleCard products={msg.products} />
                   ) : (

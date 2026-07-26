@@ -205,6 +205,22 @@ export async function getProductsForChat(options: {
   return { products: [], isBundle: false };
 }
 
+/**
+ * Single-item lookup used by the chat AI's find_products tool: it calls this
+ * with a short, specific phrase for ONE concrete item it is about to
+ * recommend (e.g. "eSIM UK", "evening dress"), right as it writes that part
+ * of the answer — replacing the old approach of guessing a fixed product set
+ * up front and appending it after the fact regardless of what the reply
+ * actually ended up saying.
+ */
+export async function findProductsForItem(
+  item: string,
+  category?: string,
+  take = 3,
+): Promise<ProductRow[]> {
+  return searchProducts(item, category, take);
+}
+
 export async function listAllProducts() {
   return prisma.product.findMany({ orderBy: { updatedAt: "desc" } });
 }

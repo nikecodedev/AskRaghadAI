@@ -26,6 +26,11 @@ function stripBidiMarks(text: string): string {
   return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "");
 }
 
+/** Remove inline product-card placeholders — meaningless outside the live chat UI. */
+function stripCardMarkers(text: string): string {
+  return text.replace(/\[\[(?:card|bundle):[^\]]+\]\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function buildFilename(locale: Locale): string {
   const stamp = new Date()
     .toISOString()
@@ -65,7 +70,7 @@ function renderMessage(
   const border = isUser ? "#cfe0d6" : "#e6ddc9";
   const labelColor = isUser ? "#1f5240" : "#8a7550";
 
-  const clean = stripBidiMarks(prepareChatDisplayText(msg.content, locale));
+  const clean = stripBidiMarks(prepareChatDisplayText(stripCardMarkers(msg.content), locale));
   const isRtl = containsArabic(clean) || containsArabic(label);
   const dir = isRtl ? "rtl" : "ltr";
   const align = isRtl ? "right" : "left";
@@ -166,7 +171,7 @@ function exportPlainText(options: {
 
   for (const msg of history) {
     const prefix = msg.role === "user" ? `${labels.user}: ` : `${labels.assistant}: `;
-    const text = `${prefix}${prepareChatDisplayText(msg.content, locale)}`;
+    const text = `${prefix}${prepareChatDisplayText(stripCardMarkers(msg.content), locale)}`;
     const lines: string[] = doc.splitTextToSize(text, maxWidth);
     doc.setFontSize(11);
     for (const line of lines) {
