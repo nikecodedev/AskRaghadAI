@@ -63,9 +63,9 @@ export async function POST(request: Request) {
         console.error("[chat] rag load", ragError);
         return [] as IndexedChunk[];
       }),
-      getProductsForChat({ query: searchQuery, category }).catch((productError) => {
+      getProductsForChat({ query: searchQuery, category, locale }).catch((productError) => {
         console.error("[chat] products", productError);
-        return [] as Awaited<ReturnType<typeof getProductsForChat>>;
+        return { products: [], isBundle: false } as Awaited<ReturnType<typeof getProductsForChat>>;
       }),
     ]);
 
@@ -79,9 +79,11 @@ export async function POST(request: Request) {
       }
     }
 
-    let dbProducts = dbProductsResult;
+    let dbProducts = dbProductsResult.products;
+    let isBundle = dbProductsResult.isBundle;
     if (dbProducts.length === 0) {
       dbProducts = getBundledProductsForChat({ query: searchQuery, category });
+      isBundle = false;
     }
     const partnerNames = dbProducts.map((p) =>
       locale === "ar" ? p.nameAr : p.nameEn,
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       answer,
       products,
+      isBundle,
       suggestCategories: false,
       sources: retrieved.map((c) => ({
         id: c.id,

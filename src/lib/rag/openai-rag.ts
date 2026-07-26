@@ -470,6 +470,47 @@ export async function detectImageSearchTerms(
   }
 }
 
+/**
+ * Breaks an "I need a full X" request into the individual pieces it implies,
+ * e.g. "wedding outfit" -> ["abaya", "handbag", "shoes"], "trip to London" ->
+ * ["flight", "hotel", "esim"]. Used to auto-assemble a bundle across
+ * unrelated partner stores when no Bundle_ID already links the items —
+ * without this, "full outfit" style requests could only ever surface items
+ * someone had manually pre-linked in the Sheet.
+ */
+export async function identifyBundleComponents(
+  query: string,
+  locale: "en" | "ar" = "en",
+): Promise<string[]> {
+  const prompt =
+    locale === "ar"
+      ? `المستخدم يطلب طقماً أو مجموعة كاملة: "${query}"\nاذكر 2 إلى 4 قطع أو عناصر تتكوّن منها هذه المجموعة عادةً، كل عنصر بكلمتين كحد أقصى. أجب بقائمة مفصولة بفواصل فقط، بدون شرح. مثال: عباية، حقيبة، حذاء`
+      : `The user is asking for a full set or bundle: "${query}"\nList 2 to 4 individual pieces this set would typically include, each in 1-2 words. Reply as a comma-separated list only, no explanation. Example: abaya, handbag, shoes`;
+
+  try {
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY!.trim(),
+      timeout: 15_000,
+      maxRetries: 0,
+    });
+    const response = await client.chat.completions.create({
+      model: CHAT_MODEL,
+      messages: [{ role: "user", content: prompt }] as never,
+      temperature: 0.3,
+      max_tokens: 40,
+    } as never);
+    const text = (response as { choices: { message: { content: string } }[] }).choices[0]?.message?.content ?? "";
+    return text
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .slice(0, 4);
+  } catch (error) {
+    console.warn("[rag] bundle component detection failed", error);
+    return [];
+  }
+}
+
 export function isOpenAIConfigured(): boolean {
   const key = process.env.OPENAI_API_KEY?.trim();
   return Boolean(key && !key.includes("REPLACE_WITH"));

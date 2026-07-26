@@ -18,18 +18,9 @@ type ChatMessage = {
   content: string;
   image?: string;
   products?: ChatProduct[];
+  isBundle?: boolean;
   suggestCategories?: boolean;
 };
-
-// A real assembled set: 2+ returned items that all share the same Bundle_ID.
-// Anything else (a single item, or the usual "top match + one complementary
-// suggestion" pair with no shared bundle) renders as plain individual cards.
-function isBundleGroup(products: ChatProduct[]): boolean {
-  if (products.length < 2) return false;
-  const firstId = products[0].bundleId;
-  if (!firstId) return false;
-  return products.every((p) => p.bundleId === firstId);
-}
 
 /* Minimal typing for the browser Web Speech API (Chrome/Edge/Safari). */
 type SpeechRecognitionLike = {
@@ -177,6 +168,7 @@ export function ChatPanel() {
         role: "assistant",
         content: data.answer ?? data.error ?? "Error",
         products: data.products,
+        isBundle: data.isBundle,
         suggestCategories: data.suggestCategories,
       });
     } catch {
@@ -298,7 +290,7 @@ export function ChatPanel() {
                   </div>
                 )}
                 {msg.products && msg.products.length > 0 && (
-                  isBundleGroup(msg.products) ? (
+                  msg.isBundle ? (
                     <BundleCard products={msg.products} />
                   ) : (
                     <div className="chat-bubble-assistant mt-3 grid gap-3 sm:grid-cols-2">
