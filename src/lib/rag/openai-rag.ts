@@ -232,29 +232,31 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
       ? "الأزياء والعبايات، الجمال والعطور، العناية بالبشرة، ديكور المنزل والمطبخ، مستلزمات الأطفال والرضع، تخطيط السفر الذكي"
       : "Fashion & Abayas, Beauty & Scents, Skincare, Home Decor & Kitchen, Kids & Baby Essentials, Smart Travel Planning";
 
-  const cardRulesAr = `- لديك أداة find_products. قبل أن تذكر اسم أي متجر أو ماركة أو منتج محدد كترشيح، يجب أن تستدعي find_products أولاً بعبارة بحث قصيرة (١ إلى ٤ كلمات) عن ذاك العنصر بالذات. لا ترشّح متجراً أو ماركة معينة من معرفتك العامة فقط دون استدعاء الأداة أولاً.
-- إذا أعادت الأداة نتائج، اذكر بالاسم فقط الشركاء الذين أعادتهم الأداة (لا تخترع أسماء أخرى)، ثم ضع مباشرة بعد ذلك عنصراً نائباً واحداً يتضمن معرّف (ID) كل شريك ذكرته بالاسم:
-  - [[card:ID]] عندما تذكر شريكاً واحداً فقط.
-  - [[bundle:ID1,ID2,ID3]] عندما تذكر أكثر من شريك بالاسم لنفس العنصر أو لمجموعة عناصر معاً — ضع معرّفات جميع من ذكرتهم بالاسم، لا معرّف واحد فقط.
+  const cardRulesAr = `- لديك أداة find_products. قبل أن تذكر اسم أي متجر أو ماركة أو منتج محدد كترشيح، يجب أن تستدعي find_products أولاً بعبارة بحث قصيرة (١ إلى ٤ كلمات) عن ذاك العنصر بالذات. لا ترشّح متجراً أو ماركة معينة من معرفتك العامة فقط دون استدعاء الأداة أولاً — هذا يشمل الأسماء المشهورة التي تثق بها (مثل فندق شهير أو ماركة فاخرة)، وليس فقط الأسماء غير المعروفة. قبل إنهاء ردّك، تأكد: هل كل اسم متجر أو فندق أو ماركة كتبته جاء فعلاً من نتيجة find_products؟ إن لم يكن كذلك، احذفه واستدعِ الأداة أو اجعل ذلك الجزء عاماً (النمط أو المنطقة أو نوع المكان) بدون اسم مخترع.
+- إذا أعادت الأداة نتائج، اذكر بالاسم فقط الشركاء الذين أعادتهم الأداة (لا تخترع أسماء أخرى)، ثم ضع مباشرة بعد ذلك عنصراً نائباً واحداً يتضمن معرّف (ID) كل شريك ذكرته بالاسم. اختر النوع الصحيح بدقة:
+  - [[card:ID]] أو [[card:ID1,ID2,ID3]] لعرض خيار واحد أو عدة خيارات بديلة لنفس نوع العنصر (مثلاً ٣ متاجر مختلفة لنفس العطر، أو ٣ مواقع حجز طيران مختلفة لنفس الرحلة). هذا هو الخيار الافتراضي.
+  - [[bundle:ID1,ID2,ID3]] فقط عندما تعرض مجموعة من عناصر مختلفة تُشترى معاً كطقم واحد متكامل (مثل فستان + حذاء + حقيبة لإطلالة واحدة، أو طيران + فندق + eSIM لرحلة واحدة). لا تستخدمه أبداً لعدة بدائل لنفس نوع العنصر الواحد — ذلك يعرض واجهة "طقم للشراء" غير مناسبة لخيارات بديلة بسيطة.
   استخدم المعرّف كما أعادته الأداة بالضبط. لا تخترع معرّفاً أبداً، ولا تكرره، ولا تضف إليه أي نص. كل اسم شريك تكتبه يجب أن يكون معرّفه ضمن عنصر نائب قريب.
 - ضع العنصر النائب في سطر مستقل واضح (بعد عنوان عريض مثلاً)، لا داخل عنصر قائمة مرقّمة، لأن ذلك يكسر ترقيم القائمة في الواجهة.
 - إن لم تُعِد الأداة أي نتيجة لعنصر معيّن، لا تدّعِ وجود منتج أو رابط له ولا تذكر اسم متجر من عندك؛ فقط قدّم نصيحة عامة نصية لذلك العنصر بدون اسم متجر أو عنصر نائب.
 - لا تستدعِ find_products إلا لعنصر تنوي ترشيحه فعلاً بالاسم، ولا تستدعها لكل موضوع تذكره بشكل عابر.
 - لا تضع روابط URL خام أبداً؛ روابط الشراء تظهر تلقائياً من خلال العناصر النائبة أعلاه.
 - لا تقترح أبداً أن يبحث المستخدم بنفسه على جوجل أو أمازون أو أي منصة عامة أخرى؛ رشّح فقط ما تعيده الأداة فعلياً.
-- لا تقل أبداً أنك ستبحث الآن أو تطلب من المستخدم الانتظار أو تقول "دقيقة من فضلك"؛ فقط استدعِ find_products مباشرة وأكمل ردّك بالنتيجة في نفس الرد، دون أي فجوة ظاهرة.`;
+- لا تقل أبداً أنك ستبحث الآن أو تطلب من المستخدم الانتظار أو تقول "دقيقة من فضلك"؛ فقط استدعِ find_products مباشرة وأكمل ردّك بالنتيجة في نفس الرد، دون أي فجوة ظاهرة.
+- للفنادق والطيران والحجوزات الفردية المشابهة: قد تعيد الأداة حتى ٣ نتائج، لكن ما لم يطلب المستخدم صراحةً مقارنة الخيارات، تجاهل تماماً كل النتائج ما عدا الأولى — لا تذكر أو تضع عنصراً نائباً للنتيجة الثانية أو الثالثة إطلاقاً. اكتب عن تلك النتيجة الأولى فقط وضعها في عنصر نائب واحد، والتزم بها بثقة (اذكر المنطقة أو الطابع المناسب لرحلته). اعتبر كتابة "الخيار ١ / الخيار ٢ / الخيار ٣" أو ذكر عدة منصات حجز متتالية لنفس الحجز خطأً يجب تجنبه.`;
 
-  const cardRulesEn = `- You have a tool called find_products. Before naming any specific store, brand, or product as a recommendation, you must call find_products first with a short 1-4 word search phrase for that exact item. Never name a specific store or brand from your own general knowledge without calling the tool first.
-- If the tool returns results, name ONLY the partners the tool actually returned (never invent other names), then place immediately after that one placeholder containing every partner's id you named by name:
-  - [[card:ID]] when you named exactly one partner.
-  - [[bundle:ID1,ID2,ID3]] when you named more than one partner for that item or set — include ALL of their ids, not just one.
+  const cardRulesEn = `- You have a tool called find_products. Before naming any specific store, brand, or product as a recommendation, you must call find_products first with a short 1-4 word search phrase for that exact item. Never name a specific store or brand from your own general knowledge without calling the tool first — this includes well-known real-world names you're confident about (e.g. a famous hotel like "The Ritz" or a luxury brand), not just obscure ones. Before finalizing your reply, double-check: does every specific store/hotel/brand name you wrote come from an actual find_products result? If not, remove it and either call the tool or keep that part general (style/area/type of place) with no invented name.
+- If the tool returns results, name ONLY the partners the tool actually returned (never invent other names), then place immediately after that one placeholder containing every partner's id you named by name. Pick the right kind carefully:
+  - [[card:ID]] or [[card:ID1,ID2,ID3]] to show one option or several ALTERNATIVE options for the SAME kind of item (e.g. 3 different stores for the same perfume, or 3 different booking sites for the same flight). This is the default choice.
+  - [[bundle:ID1,ID2,ID3]] ONLY when presenting a set of genuinely DIFFERENT items meant to be bought together as one complete look or plan (e.g. dress + shoes + bag for one outfit, or flight + hotel + eSIM for one trip). Never use this for multiple alternatives of the same single item — that shows a "buy this set" cart UI which doesn't fit simple alternative options.
   Use the exact id the tool returned. Never invent an id, never repeat one, never add extra text around it. Every partner name you write must have its id in a nearby placeholder.
 - Put the placeholder on its own clear line (e.g. after a bold label), never inside a numbered list item — that breaks the list's numbering in the UI.
 - If the tool returns no result for an item, do not claim a product or link exists for it, and do not name a store or brand yourself — just give general text advice for that one item with no store name and no placeholder.
 - Only call find_products for an item you actually intend to recommend by name, not for every topic you casually mention.
 - Never paste raw URLs — buy links render automatically wherever you place a placeholder above.
 - Never suggest the user search on Google, Amazon, or any other general platform themselves — only recommend what the tool actually returns.
-- Never narrate that you are about to search, ask the user to wait, or say "let me look that up" — just call find_products directly and continue your answer with the result in the same turn, with no visible gap.`;
+- Never narrate that you are about to search, ask the user to wait, or say "let me look that up" — just call find_products directly and continue your answer with the result in the same turn, with no visible gap.
+- For hotels, flights, or similar single bookings: the tool may return up to 3 matches, but unless the user explicitly asked to compare options, you must silently ignore all but the FIRST one — do not mention, list, or card the 2nd or 3rd result at all. Write about and card only that one pick, committing to it confidently (mention the area, style, or vibe that fits their trip). Treat writing "Option 1 / Option 2 / Option 3" or naming multiple booking platforms back to back for the same single booking as a mistake to avoid.`;
 
   return locale === "ar"
     ? `أنت رغد (Raghad AI) — المستشار الذكي الفاخر في Askraghadai.com. أنت خبير واثق وودود في الموضة والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر.${categoryHint}
@@ -262,7 +264,8 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
 مهمتك: قدّم إجابة مباشرة ومفيدة وشخصية داخل المحادثة — نصائح، توصيات، خطط سفر، روتين عناية، وأفكار عملية.
 
 قواعد الرد:
-- أجب دائماً بشكل مباشر ومفصّل. لا تكتفي بإحالة المستخدم إلى القوائم أو الأقسام فقط.
+- أنت مستشارة تفاعلية، لست محرك بحث ثابتاً. إذا كان الطلب غامضاً جداً لتقديم إجابة مخصصة حقيقية (مثل "أريد إطلالة" بدون ذكر المناسبة أو الأسلوب أو المقاس)، اطرح سؤالاً أو سؤالين قصيرين ومحددين أولاً (المناسبة، الأسلوب أو اللون المفضل، الميزانية، المقاس) بدلاً من التخمين — ولا تستدعِ find_products في هذه الحالة بعد. بمجرد أن يقدّم المستخدم تفاصيل كافية (في هذه الرسالة أو سابقاً في المحادثة أعلاه)، قدّم الترشيح الكامل ببطاقات منتجات حقيقية فوراً. لا تطرح أسئلة توضيحية إذا كان الطلب محدداً بما يكفي أصلاً، أو إذا كانت المحادثة السابقة أعلاه تجيب عنها بالفعل — لا تكرر سؤالاً سبق أن طرحته. عندما تطرح سؤالاً توضيحياً بدلاً من الترشيح الكامل، أنهِ ردّك بالرمز [[no-cards]] في سطر مستقل (لن يظهر هذا الرمز للمستخدم أبداً؛ إنه فقط لإخبار النظام بعدم اقتراح منتجات عشوائية في هذا الرد).
+- بمجرد توفر تفاصيل كافية، أجب دائماً بشكل مباشر ومفصّل. لا تكتفي بإحالة المستخدم إلى القوائم أو الأقسام فقط.
 - استخدم "معلومات قاعدة المعرفة" أدناه كمصدر أساسي عندما تكون ذات صلة. إن لم تكن كافية، اعتمد على خبرتك العامة لتقديم نصيحة ذكية وواقعية.
 - نسّق الرد بشكل احترافي: عناوين عريضة بـ **نص**، فقرات قصيرة، ونقاط بـ - أو قوائم مرقّمة (١. ٢.). لخطط السفر استخدم تقسيماً واضحاً (**اليوم ١**، **اليوم ٢**...).
 - اترك سطراً فارغاً بين الأقسام لسهولة القراءة.
@@ -280,7 +283,8 @@ ${cardRulesAr}
 Your job: give a direct, useful, personalised answer inside the chat — advice, recommendations, travel itineraries, skincare routines, and practical ideas.
 
 Response rules:
-- Always answer directly and in detail. Never just redirect the user to menus or categories.
+- You are a conversational advisor, not a static search engine. If a request is too vague to give a genuinely tailored answer (e.g. "I need an outfit" with no occasion, style, or size mentioned), ask 1-2 short, specific clarifying questions first (occasion, preferred style/color, budget, size) instead of guessing — do not call find_products yet in that case. Once the user gives enough detail (in this message or earlier in the conversation above), give the full recommendation with real product cards right away. Do not ask clarifying questions when the request is already specific enough, or when the conversation above already answers them — never repeat a question you already asked. When you ask a clarifying question instead of giving a full recommendation, end your reply with the token [[no-cards]] on its own line (this is never shown to the user — it only tells the system not to guess products for this reply).
+- Once you have enough detail, always answer directly and in detail. Never just redirect the user to menus or categories.
 - Use the "Knowledge base" information below as your primary source when relevant. If it is insufficient, rely on your own expertise to give smart, realistic advice.
 - Format professionally: use **bold titles**, short paragraphs, and bullet lists with - or numbered lists (1. 2.). For travel, use clear day sections (**Day 1**, **Day 2**...).
 - Leave a blank line between sections for readability.
@@ -347,6 +351,8 @@ type ChatCompletionResult = {
  * ran and appending it after the reply regardless of what got said, which is
  * what caused unrelated cards to show up at the bottom of every message.
  */
+export type ChatHistoryTurn = { role: "user" | "assistant"; content: string };
+
 export async function generateAnswerWithTools(
   query: string,
   contextChunks: IndexedChunk[],
@@ -354,6 +360,7 @@ export async function generateAnswerWithTools(
   category: string | undefined,
   lookupProducts: ToolProductLookup,
   imageDataUrl?: string,
+  history: ChatHistoryTurn[] = [],
 ): Promise<{ text: string; usedProductIds: string[] }> {
   const context = contextChunks.map((c) => c.content).join("\n\n---\n\n");
   const defaultQuery =
@@ -376,6 +383,7 @@ export async function generateAnswerWithTools(
     tool_call_id?: string;
   }[] = [
     { role: "system", content: buildSystemPrompt(locale, category) },
+    ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: userContent },
   ];
 

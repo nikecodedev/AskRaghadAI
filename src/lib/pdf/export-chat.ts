@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { Locale } from "@/lib/i18n/types";
-import { prepareChatDisplayText } from "@/lib/text/normalize";
+import { prepareChatDisplayText, stripCardMarkers } from "@/lib/text/normalize";
 
 export type PdfChatMessage = {
   role: "user" | "assistant";
@@ -24,11 +24,6 @@ function containsArabic(text: string): boolean {
 /** Strip bidi marks that can confuse canvas rasterizers on short RTL strings. */
 function stripBidiMarks(text: string): string {
   return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "");
-}
-
-/** Remove inline product-card placeholders — meaningless outside the live chat UI. */
-function stripCardMarkers(text: string): string {
-  return text.replace(/\[\[(?:card|bundle):[^\]]+\]\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function buildFilename(locale: Locale): string {

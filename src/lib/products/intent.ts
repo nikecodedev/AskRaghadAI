@@ -103,10 +103,6 @@ const CATEGORY_KEYWORDS: Record<CategoryId, string[]> = {
   ],
 };
 
-/** Soft shopping intent that should still surface affiliate cards. */
-const GENERAL_SHOPPING_HINT =
-  /recommend|recommendation|gift|shop|buy|purchase|affiliate|deal|هدية|هدايا|توصية|توصيات|اشتري|شراء|تسوق|عرض|عروض/i;
-
 function normalizeForMatch(text: string) {
   return text
     .toLowerCase()
@@ -133,16 +129,19 @@ export function scoreCategoryMatch(query: string, category: CategoryId): number 
   return score;
 }
 
-/** Pick the best category from explicit URL param or chat query intent. */
+/**
+ * Pick the best category for a query. What the query's own words say always
+ * wins — the page the user happens to be browsing (explicitCategory) is only
+ * a fallback for when the query itself is too generic to resolve anything
+ * (e.g. "recommend something nice" on the Beauty page). Without this
+ * priority, a user on the Fashion page asking about "a hotel in Paris" would
+ * get fashion results force-matched onto an unrelated travel request.
+ */
 export function resolveProductCategory(
   query: string,
   explicitCategory?: string,
 ): CategoryId | undefined {
   const validIds = Object.keys(CATEGORY_KEYWORDS) as CategoryId[];
-
-  if (explicitCategory && validIds.includes(explicitCategory as CategoryId)) {
-    return explicitCategory as CategoryId;
-  }
 
   let best: CategoryId | undefined;
   let bestScore = 0;
@@ -157,10 +156,8 @@ export function resolveProductCategory(
 
   if (bestScore > 0) return best;
 
-  // Vague shopping questions should still open shoppable cards instead of
-  // leaving the user with plain text and no affiliate photos/links.
-  if (GENERAL_SHOPPING_HINT.test(query)) {
-    return "beauty";
+  if (explicitCategory && validIds.includes(explicitCategory as CategoryId)) {
+    return explicitCategory as CategoryId;
   }
 
   return undefined;

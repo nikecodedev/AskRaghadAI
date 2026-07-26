@@ -65,6 +65,11 @@ export function neutralizeArabicGender(text: string): string {
     .replace(/يجب عليكِ/g, "يجب عليك");
 }
 
+/** Remove inline product-card placeholders — meaningless outside the live chat UI (PDF export, conversation history sent back to the AI, etc). */
+export function stripCardMarkers(text: string): string {
+  return text.replace(/\[\[(?:card|bundle):[^\]]+\]\]/g, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export function prepareChatDisplayText(text: string, locale: "en" | "ar"): string {
   let normalized = normalizeAnswerText(text);
   if (locale === "ar" || /[\u0600-\u06FF]/.test(normalized)) {

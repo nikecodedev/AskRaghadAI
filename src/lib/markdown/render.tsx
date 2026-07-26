@@ -35,17 +35,23 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return nodes.length > 0 ? nodes : [text];
 }
 
-export function MarkdownContent({
-  content,
-  dir = "ltr",
-}: {
-  content: string;
-  dir?: "ltr" | "rtl";
-}) {
+/**
+ * Core block builder, extracted from the exported component so a message
+ * split into several chunks by inline product-card markers (see
+ * ChatMessageContent) can carry its ordered-list count across chunks
+ * instead of each chunk restarting its own <ol> at 1 — that restart is what
+ * made numbered lists appear broken whenever a [[card:ID]] placeholder sat
+ * between two numbered items (which the AI is instructed to do).
+ */
+export function buildMarkdownBlocks(
+  content: string,
+  startOrderedAt: number = 1,
+): { blocks: ReactNode[]; nextOrderedStart: number } {
   const lines = content.split("\n");
   const blocks: ReactNode[] = [];
   let listItems: ReactNode[] = [];
   let blockKey = 0;
+  let orderedCounter = startOrderedAt;
 
   let orderedItems: ReactNode[][] = [];
 
@@ -62,7 +68,12 @@ export function MarkdownContent({
   const flushOrderedList = () => {
     if (orderedItems.length === 0) return;
     blocks.push(
-      <ol key={`olist-${blockKey++}`} dir="auto" className="my-2 list-decimal space-y-1.5 ps-5">
+      <ol
+        key={`olist-${blockKey++}`}
+        dir="auto"
+        start={orderedCounter}
+        className="my-2 list-decimal space-y-1.5 ps-5"
+      >
         {orderedItems.map((itemContent, idx) => (
           <li key={`oli-${idx}`} dir="auto">
             {itemContent}
@@ -70,6 +81,7 @@ export function MarkdownContent({
         ))}
       </ol>,
     );
+    orderedCounter += orderedItems.length;
     orderedItems = [];
   };
 
@@ -177,6 +189,19 @@ export function MarkdownContent({
   }
 
   flushLists();
+  return { blocks, nextOrderedStart: orderedCounter };
+}
+
+export function MarkdownContent({
+  content,
+  dir = "ltr",
+  startOrderedAt = 1,
+}: {
+  content: string;
+  dir?: "ltr" | "rtl";
+  startOrderedAt?: number;
+}) {
+  const { blocks } = buildMarkdownBlocks(content, startOrderedAt);
   return (
     <div dir={dir} className="chat-message-body space-y-0.5">
       {blocks}

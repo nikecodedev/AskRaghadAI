@@ -10,8 +10,10 @@ import {
   ChatMessageContent,
 } from "@/components/chat/ChatMessageContent";
 import { exportChatToPdf } from "@/lib/pdf/export-chat";
-import { prepareChatDisplayText } from "@/lib/text/normalize";
+import { prepareChatDisplayText, stripCardMarkers } from "@/lib/text/normalize";
 import type { ChatProduct } from "@/lib/products/types";
+
+const MAX_HISTORY_TURNS = 10;
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -144,6 +146,13 @@ export function ChatPanel() {
     const requestCategory = options?.category ?? category;
     if ((!userMessage && !image) || loading) return;
     const userImage = image;
+    // Prior turns only, oldest of the window first — the current message is
+    // sent separately as `query`. Card placeholders are stripped since
+    // they're meaningless (and their ids stale) outside the live chat UI.
+    const historyPayload = historyRef.current.slice(-MAX_HISTORY_TURNS).map((m) => ({
+      role: m.role,
+      content: m.role === "assistant" ? stripCardMarkers(m.content) : m.content,
+    }));
     setInput("");
     setImage(null);
     appendMessage({
@@ -162,6 +171,7 @@ export function ChatPanel() {
           locale,
           category: requestCategory,
           image: userImage,
+          history: historyPayload,
         }),
       });
       const data = await res.json();

@@ -31,6 +31,18 @@ export async function POST(request: Request) {
     const image = typeof body.image === "string" && body.image.startsWith("data:image")
       ? body.image
       : undefined;
+    type HistoryTurn = { role: "user" | "assistant"; content: string };
+    const rawHistory: unknown[] = Array.isArray(body.history) ? body.history : [];
+    const history: HistoryTurn[] = rawHistory
+      .filter((m): m is { role: string; content: string } =>
+        Boolean(m) && typeof m === "object" && "role" in (m as object) && "content" in (m as object),
+      )
+      .map((m): HistoryTurn => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: String(m.content ?? "").slice(0, 4000),
+      }))
+      .filter((m: HistoryTurn) => m.content.trim().length > 0)
+      .slice(-10);
 
     if (!query && !image) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
@@ -79,6 +91,9 @@ export async function POST(request: Request) {
     // exactly (and only) what the reply ends up referencing inline.
     const fullProductRows = new Map<string, ChatProduct>();
     const lookupProducts = async (item: string): Promise<ToolProductMatch[]> => {
+      // resolveProductCategory prioritises the item's own words over the
+      // page category, so an aside like "hotel in London" on the Fashion
+      // page still resolves to travel instead of being force-matched.
       const matches = await findProductsForItem(item, category, 3).catch((error) => {
         console.error("[chat] product tool lookup", error);
         return [];
@@ -97,6 +112,7 @@ export async function POST(request: Request) {
         category,
         lookupProducts,
         image,
+        history,
       );
       rawAnswer = result.text;
       usedProductIds = result.usedProductIds;
@@ -119,9 +135,17 @@ export async function POST(request: Request) {
       });
     }
 
+    // The AI appends this sentinel (never shown to the user) when it asked a
+    // clarifying question instead of recommending — without checking for it,
+    // the fallback below would guess a generic product grid for a reply that
+    // deliberately isn't recommending anything yet, reintroducing the exact
+    // "random unrelated cards" complaint this whole system was built to fix.
+    const deferredProducts = /\[\[no-cards\]\]/.test(rawAnswer);
+    const cleanedAnswer = rawAnswer.replace(/\s*\[\[no-cards\]\]\s*/g, "\n").trim();
+
     // Strip raw URLs, then neutralize feminine Arabic + fix RTL punctuation
     // so the chat UI never shows تأكدي/احجزي or leading-colon jumps.
-    const answer = prepareChatDisplayText(stripRawUrls(rawAnswer, locale), locale);
+    const answer = prepareChatDisplayText(stripRawUrls(cleanedAnswer, locale), locale);
 
     const session = await getSession();
     if (session && query) {
@@ -138,8 +162,11 @@ export async function POST(request: Request) {
 
     // The model made zero find_products calls (or none matched) — fall back
     // to intent-based search so a genuine shopping question never ends up
-    // with no cards at all, same as a query with no inline references.
-    if (products.length === 0) {
+    // with no cards at all, same as a query with no inline references. Skip
+    // this entirely when the model deliberately asked a clarifying question
+    // instead of recommending — showing a guessed grid there would be exactly
+    // the "random unrelated cards" behavior this system replaces.
+    if (products.length === 0 && !deferredProducts) {
       const fallback = await getProductsForChat({ query: searchQuery, category, locale }).catch((error) => {
         console.error("[chat] fallback products", error);
         return { products: [], isBundle: false };

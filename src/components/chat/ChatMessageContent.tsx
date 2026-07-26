@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/categories";
-import { MarkdownContent } from "@/lib/markdown/render";
+import { buildMarkdownBlocks } from "@/lib/markdown/render";
 import { ChatProductCard } from "@/components/chat/ChatProductCard";
 import { BundleCard } from "@/components/chat/BundleCard";
 import type { ChatProduct } from "@/lib/products/types";
@@ -86,11 +86,24 @@ export function ChatMessageContent({
 }) {
   const segments = parseSegments(content);
   const productMap = new Map(products.map((p) => [p.id, p]));
+  // A [[card:ID]] marker splits one logical numbered list into several text
+  // segments — each is rendered independently, so this counter is threaded
+  // through them to keep "1, 2, 3..." continuous instead of every segment
+  // after the first marker restarting its own <ol> at 1.
+  let nextOrderedStart = 1;
 
   return (
     <div className="chat-message-body space-y-2" dir={dir}>
       {segments.map((seg, i) => {
-        if (seg.type === "text") return <MarkdownContent key={i} content={seg.value} dir={dir} />;
+        if (seg.type === "text") {
+          const { blocks, nextOrderedStart: after } = buildMarkdownBlocks(seg.value, nextOrderedStart);
+          nextOrderedStart = after;
+          return (
+            <div key={i} dir={dir} className="chat-message-body space-y-0.5">
+              {blocks}
+            </div>
+          );
+        }
         if (seg.type === "cards") return <InlineCards key={i} mode={seg.mode} ids={seg.ids} productMap={productMap} />;
         return (
           <a
