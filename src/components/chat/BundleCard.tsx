@@ -44,6 +44,7 @@ export function BundleCard({ products }: { products: ChatProduct[] }) {
         {products.map((p) => {
           const isChecked = selected.has(p.id);
           const isMain = p.itemRole !== "complementary";
+          const actionLabel = p.category === "travel" ? messages.products.bookNow : messages.products.shopNow;
           return (
             <li key={p.id} className="flex items-center gap-3 p-3">
               <input
@@ -91,7 +92,7 @@ export function BundleCard({ products }: { products: ChatProduct[] }) {
                   rel="noopener noreferrer"
                   className="shrink-0 rounded-full bg-gradient-to-b from-[#2c6e55] to-[#1f5240] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
                 >
-                  {messages.products.shopNow}
+                  {actionLabel}
                 </a>
               )}
             </li>

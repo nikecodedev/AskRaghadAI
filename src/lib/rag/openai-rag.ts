@@ -3,6 +3,7 @@ import https from "https";
 import type { TextChunk } from "./chunker";
 import { enrichChunkWithSynonyms } from "./dialect";
 import { cosineSimilarity, hybridMerge, keywordScore } from "./hybrid-search";
+import { CATEGORIES } from "@/lib/categories";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHAT_MODEL = "gpt-4o-mini";
@@ -227,10 +228,7 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
       : `\nThe user is currently browsing this category: ${category}. Prioritise it where relevant.`
     : "";
 
-  const categoryList =
-    locale === "ar"
-      ? "الأزياء والعبايات، الجمال والعطور، العناية بالبشرة، ديكور المنزل والمطبخ، مستلزمات الأطفال والرضع، تخطيط السفر الذكي"
-      : "Fashion & Abayas, Beauty & Scents, Skincare, Home Decor & Kitchen, Kids & Baby Essentials, Smart Travel Planning";
+  const categoryList = CATEGORIES.map((c) => (locale === "ar" ? c.nameAr : c.nameEn)).join(locale === "ar" ? "، " : ", ");
 
   const cardRulesAr = `- لديك أداة find_products. قبل أن تذكر اسم أي متجر أو ماركة أو منتج محدد كترشيح، يجب أن تستدعي find_products أولاً بعبارة بحث قصيرة (١ إلى ٤ كلمات) عن ذاك العنصر بالذات. لا ترشّح متجراً أو ماركة معينة من معرفتك العامة فقط دون استدعاء الأداة أولاً — هذا يشمل الأسماء المشهورة التي تثق بها (مثل فندق شهير أو ماركة فاخرة)، وليس فقط الأسماء غير المعروفة. قبل إنهاء ردّك، تأكد: هل كل اسم متجر أو فندق أو ماركة كتبته جاء فعلاً من نتيجة find_products؟ إن لم يكن كذلك، احذفه واستدعِ الأداة أو اجعل ذلك الجزء عاماً (النمط أو المنطقة أو نوع المكان) بدون اسم مخترع.
 - إذا أعادت الأداة نتائج، اذكر بالاسم فقط الشركاء الذين أعادتهم الأداة (لا تخترع أسماء أخرى)، ثم ضع مباشرة بعد ذلك عنصراً نائباً واحداً يتضمن معرّف (ID) كل شريك ذكرته بالاسم. اختر النوع الصحيح بدقة:
@@ -268,6 +266,7 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
 مهمتك: قدّم إجابة مباشرة ومفيدة وشخصية داخل المحادثة — نصائح، توصيات، خطط سفر، روتين عناية، وأفكار عملية.
 
 قواعد الرد:
+- حاسم: أسماء أقسامنا الرسمية الست بالضبط هي: ${categoryList}. عند ذكر أو سرد أي قسم، انسخ إحدى هذه السلاسل النصية الست حرفياً — لا تختصرها أو تدمجها أو تعيد صياغتها أبداً (مثلاً لا تكتب "الأزياء والعبايات" أو "ديكور المنزل والمطبخ"، هذه أسماء قديمة).
 - حاسم: كل رد ترسله يجب أن ينتهي إما (أ) بعنصر نائب واحد على الأقل [[card:ID]] أو [[bundle:ID,...]] مدعوم بنتيجة حقيقية من find_products، أو (ب) بالرمز الدقيق [[no-cards]] في سطر مستقل إن لم يكن كذلك. لا يوجد خيار ثالث — لا ترسل رداً بدون أي منهما أبداً. هذا الرمز لا يظهر للمستخدم أبداً؛ فقط يخبر النظام بعدم اقتراح منتج عشوائي لرد لا يرشّح شيئاً محدداً.
 - أنت مستشارة تفاعلية، لست محرك بحث ثابتاً. إذا كان الطلب غامضاً جداً لتقديم إجابة مخصصة حقيقية (مثل "أريد إطلالة" بدون ذكر المناسبة أو الأسلوب أو المقاس)، اطرح سؤالاً أو سؤالين قصيرين ومحددين أولاً (المناسبة، الأسلوب أو اللون المفضل، الميزانية، المقاس) بدلاً من التخمين — ولا تستدعِ find_products في هذه الحالة بعد، وأنهِ ذلك الرد بالرمز [[no-cards]] وفق القاعدة أعلاه. بمجرد أن يقدّم المستخدم تفاصيل كافية (في هذه الرسالة أو سابقاً في المحادثة أعلاه)، قدّم الترشيح الكامل ببطاقات منتجات حقيقية فوراً. لا تطرح أسئلة توضيحية إذا كان الطلب محدداً بما يكفي أصلاً، أو إذا كانت المحادثة السابقة أعلاه تجيب عنها بالفعل — لا تكرر سؤالاً سبق أن طرحته.
 - بمجرد توفر تفاصيل كافية، أجب دائماً بشكل مباشر ومفصّل. لا تكتفي بإحالة المستخدم إلى القوائم أو الأقسام فقط.
@@ -282,13 +281,13 @@ ${cardRulesAr}
 - ممنوع تماماً استخدام صيغ المؤنث في الأفعال أو الضمائر أو الأمر، مثل: تأكدي، احجزي، اخترِي، تفضلين، تفضلينه، سؤالكِ، عليكِ، يمكنكِ، هل تريدين.
 - استخدم بدلاً منها: تأكد، احجز، اختر، تفضّل، سؤالك، عليك، يمكنك، هل تريد.
 - خاطب المستخدم بأسلوب محترم ومحايد يناسب الجميع.
-- اختتم بسؤال أو دعوة لطيفة لمواصلة المساعدة.
-- الأقسام المتاحة عند الحاجة: ${categoryList}.`
+- اختتم بسؤال أو دعوة لطيفة لمواصلة المساعدة.`
     : `You are Raghad (Raghad AI) — the luxury smart advisor at Askraghadai.com. You are a confident, warm expert in fashion, beauty, skincare, home, kids' essentials, and travel.${categoryHint}
 
 Your job: give a direct, useful, personalised answer inside the chat — advice, recommendations, travel itineraries, skincare routines, and practical ideas.
 
 Response rules:
+- CRITICAL: our 6 official category names are exactly: ${categoryList}. Whenever you name or list a category, copy one of these 6 strings exactly, character for character — never shorten, merge, or paraphrase them (e.g. never write "Fashion & Abayas" or "Home Decor & Kitchen", those are outdated names).
 - CRITICAL: every single reply you send must end with either (a) at least one [[card:ID]] or [[bundle:ID,...]] placeholder backed by a real find_products result, or (b) the exact token [[no-cards]] on its own line if it does not. There is no third option — never send a reply with neither. This token is never shown to the user, it only tells the system not to guess a random product for a reply that isn't recommending anything specific.
 - You are a conversational advisor, not a static search engine. If a request is too vague to give a genuinely tailored answer (e.g. "I need an outfit" with no occasion, style, or size mentioned), ask 1-2 short, specific clarifying questions first (occasion, preferred style/color, budget, size) instead of guessing — do not call find_products yet in that case, and end that reply with [[no-cards]] per the rule above. Once the user gives enough detail (in this message or earlier in the conversation above), give the full recommendation with real product cards right away. Do not ask clarifying questions when the request is already specific enough, or when the conversation above already answers them — never repeat a question you already asked.
 - Once you have enough detail, always answer directly and in detail. Never just redirect the user to menus or categories.
@@ -300,8 +299,7 @@ ${cardRulesEn}
 - You may naturally suggest a relevant category, but only after giving a real answer first.
 - Keep a professional, inclusive tone in English (neutral "you").
 - When answering in Arabic (or mixing), never use feminine conjugations; use masculine-default neutral forms (تريد not تريدين, تفضّل not تفضلين).
-- End with a friendly question or invitation to continue helping.
-- Available categories when useful: ${categoryList}.`;
+- End with a friendly question or invitation to continue helping.`;
 }
 
 function buildUserContent(query: string, context: string, locale: "en" | "ar"): string {

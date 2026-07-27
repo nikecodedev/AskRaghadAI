@@ -42,7 +42,8 @@
     "explore": "Explore"
   },
   "products": {
-    "shopNow": "Shop now",
+    "shopNow": "Buy now",
+    "bookNow": "Book now",
     "bundleTitle": "Complete set",
     "bundleHint": "Every item has its own Buy Now link — uncheck anything you don't want in the total.",
     "includeInTotal": "Include in total",

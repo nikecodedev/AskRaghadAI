@@ -15,6 +15,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
   const href = product.affiliateUrl;
   const imageSrc = product.imageUrl || "/brand/mark.png";
   const hasProductPhoto = Boolean(product.imageUrl);
+  const actionLabel = product.category === "travel" ? messages.products.bookNow : messages.products.shopNow;
 
   const imageBlock = (
     <div className="relative h-44 w-full bg-[#f3ece0]">
@@ -28,7 +29,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
       />
       {href ? (
         <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-8 text-center text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">
-          {messages.products.shopNow}
+          {actionLabel}
         </span>
       ) : null}
     </div>
@@ -41,7 +42,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${messages.products.shopNow}: ${product.name}`}
+          aria-label={`${actionLabel}: ${product.name}`}
           className="block"
         >
           {imageBlock}
@@ -84,7 +85,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
             rel="noopener noreferrer"
             className="mt-3 inline-flex rounded-full bg-gradient-to-b from-[#2c6e55] to-[#1f5240] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            {messages.products.shopNow}
+            {actionLabel}
           </a>
         ) : null}
       </div>
