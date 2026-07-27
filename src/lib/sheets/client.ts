@@ -38,10 +38,16 @@ export function getSheetId() {
 }
 
 export const PRODUCT_SHEET_TAB = "Product";
-// M2 layout — A-N are the client's data, O is written by our sync to link
-// each sheet row back to its database record:
-// A Category | B Subcategory | C Item_Name | D Description | E Price |
-// F Currency | G Image_URL | H Affiliate_Link | I Discount_Code | J Active |
-// K Target_Country | L Keywords_Tags | M Bundle_ID | N Item_Role | O DB_ID
-export const PRODUCT_SHEET_RANGE = `${PRODUCT_SHEET_TAB}!A2:O1000`;
-export const PRODUCT_SHEET_HEADER_RANGE = `${PRODUCT_SHEET_TAB}!A1:O1`;
+
+// The sheet is owned and edited by the client, so its column layout is not
+// ours to assume — it has already differed from what the code expected once
+// (the code was written for a 15-column A-O layout while the live sheet was
+// 11 columns, which silently mapped Affiliate_Link into imageUrl, "TRUE"
+// into affiliateUrl, and read DB_ID from an empty column so every sync
+// duplicated all rows instead of updating them).
+//
+// Columns are therefore resolved by HEADER NAME at sync time (see
+// buildColumnMap in sync.ts), not by fixed index. These ranges are
+// deliberately wide so added columns are picked up automatically.
+export const PRODUCT_SHEET_RANGE = `${PRODUCT_SHEET_TAB}!A2:Z2000`;
+export const PRODUCT_SHEET_HEADER_RANGE = `${PRODUCT_SHEET_TAB}!A1:Z1`;

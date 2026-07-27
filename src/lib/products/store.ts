@@ -7,44 +7,135 @@ const MAX_AUTO_BUNDLE_ITEMS = 4;
 
 type ProductRow = Awaited<ReturnType<typeof prisma.product.findMany>>[number];
 
-const PERFUME_HINT =
-  /perfume|perfumes|fragrance|scent|cologne|عطر|عطور|بخور/i;
+/**
+ * A partner only qualifies if it genuinely matches the request. Below this
+ * it is dropped entirely rather than shown as a weak "best of a bad lot" —
+ * which is what previously surfaced an eyewear store for an abaya query and
+ * a perfume-only store for a mascara query.
+ */
+const MIN_RELEVANCE = 3;
 
-function productScore(product: ProductRow, query: string) {
-  if (!query.trim()) return product.imageUrl ? 1 : 0;
-  const q = query.toLowerCase();
-  const text =
-    `${product.nameEn} ${product.nameAr} ${product.descriptionEn ?? ""} ${product.descriptionAr ?? ""}`.toLowerCase();
-  const subcategoryText = (product.subcategory ?? "").toLowerCase();
-  const tagsText = (product.tags ?? "").toLowerCase();
+/**
+ * Umbrella terms added to a query purely for matching. Partner rows are
+ * tagged at store level ("makeup", "skincare"), so a specific item request
+ * ("mascara", "oily skin") has nothing to match against on its own. Mapping
+ * the specific term to its category is what lets the strict relevance gate
+ * above stay strict without simply returning nothing.
+ */
+const CONCEPT_EXPANSIONS: { pattern: RegExp; add: string }[] = [
+  { pattern: /mascara|foundation|lipstick|lip gloss|eyeliner|eyeshadow|concealer|blush|كحل|مسكرا|أحمر شفاه|احمر شفاه|مكياج/i, add: "makeup cosmetics" },
+  { pattern: /perfume|fragrance|cologne|scent|oud|incense|عطر|عطور|بخور|عود/i, add: "perfume perfumes fragrance" },
+  // Expansion terms must stay specific. A generic token like a bare "care"
+  // matches "Body Care", "Makeup & Care" and "Health Care & Eyes" alike, so
+  // it silently reintroduces exactly the cross-category bleed this is meant
+  // to prevent.
+  { pattern: /serum|moisturi|cleanser|sunscreen|spf|acne|pimple|oily skin|dry skin|wrinkle|pores|face care|facial|بشرة|سيروم|حبوب|ترطيب/i, add: "skincare facial face" },
+  { pattern: /body lotion|shower gel|body mist|body wash|body care|لوشن|غسول جسم/i, add: "body lotion" },
+  { pattern: /shampoo|conditioner|hair dye|hair removal|hair care|شعر|شامبو/i, add: "hair haircare" },
+  { pattern: /abaya|abayas|عباية|عبايات|عباءة/i, add: "abaya abayas modest" },
+  // Partner tags are English-only, so Arabic terms for traditional menswear
+  // need an explicit bridge or they match nothing.
+  { pattern: /بشت|بشوت|مشلح|مشالح|bisht|mashlah/i, add: "bisht mashlah tradition" },
+  { pattern: /handbag|purse|clutch|tote|حقيبة|شنطة|حقائب/i, add: "bags handbag handbags" },
+  { pattern: /shoe|shoes|sneaker|heels|sandal|boots|حذاء|أحذية|احذية/i, add: "shoes footwear" },
+  { pattern: /watch|watches|ساعة|ساعات/i, add: "watches" },
+  { pattern: /jewel|jewelry|gold|ring|necklace|earring|bracelet|مجوهرات|ذهب|خاتم|قلادة/i, add: "jewelry accessories" },
+  { pattern: /hotel|hotels|resort|stay|accommodation|فندق|فنادق|إقامة/i, add: "hotel hotels booking" },
+  { pattern: /flight|flights|airline|airfare|plane ticket|طيران|تذاكر طيران/i, add: "flight flights" },
+  { pattern: /esim|e-sim|sim card|data plan|شريحة|اي سيم/i, add: "esim" },
+  { pattern: /coffee|espresso|barista|قهوة|إسبريسو/i, add: "coffee" },
+  { pattern: /diaper|stroller|baby bottle|حفاض|عربة أطفال|رضاعة/i, add: "baby kids" },
+];
 
-  let score =
-    (text.includes(q) ? 5 : 0) +
-    q.split(/\s+/).filter((w) => w.length > 2 && text.includes(w)).length;
-
-  // A specific request like "abaya" should strongly prefer a partner whose
-  // sheet subcategory/tags actually say Abaya, over a generic marketplace
-  // (Amazon, Noon) that only matches on loose keyword overlap.
-  if (subcategoryText) {
-    score += q.split(/\s+/).filter((w) => w.length > 2 && subcategoryText.includes(w)).length * 6;
+function expandQueryForMatching(query: string): string {
+  let expanded = query;
+  for (const { pattern, add } of CONCEPT_EXPANSIONS) {
+    if (pattern.test(query)) expanded += ` ${add}`;
   }
-  if (tagsText) {
-    score += q.split(/\s+/).filter((w) => w.length > 2 && tagsText.includes(w)).length * 4;
-  }
-
-  // Prefer perfume-named partners when the user asks for perfume / عطر.
-  if (PERFUME_HINT.test(query) && PERFUME_HINT.test(text)) score += 8;
-  // Always prefer cards that have a real product photo (never AG logo fallback).
-  if (product.imageUrl) score += 3;
-  if (product.affiliateUrl) score += 2;
-
-  return score;
+  return expanded;
 }
 
-function rankByQueryRelevance(products: ProductRow[], query: string) {
-  return [...products].sort(
-    (a, b) => productScore(b, query) - productScore(a, query),
+/**
+ * Words too generic to be evidence that a partner sells what was asked for.
+ * "face care" vs "Body Care" share only the word "care" — counting it would
+ * score a body-lotion retailer as a facial-skincare match. Specific intent
+ * still comes through via CONCEPT_EXPANSIONS ("face care" also contributes
+ * "skincare facial face"), so dropping these loses no real signal.
+ */
+const GENERIC_QUERY_TOKENS = new Set([
+  "care", "product", "products", "item", "items", "shop", "shopping", "store", "stores",
+  "buy", "best", "good", "nice", "great", "recommend", "recommendation", "recommendations",
+  "option", "options", "thing", "things", "online", "need", "want", "looking", "please",
+  "gift", "gifts", "new", "top", "for", "the", "and", "with", "from",
+]);
+
+/** Splits into comparable word tokens, keeping Arabic letters intact. */
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9؀-ۿ]+/)
+    .filter(Boolean);
+}
+
+/**
+ * Token-level comparison rather than raw substring containment. Plain
+ * `text.includes(word)` treats "men" as a match inside "women", which is how
+ * a men's-gift query could pull a women's handbag partner.
+ */
+function tokensMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  return shorter.length >= 4 && longer.startsWith(shorter);
+}
+
+function countMatches(queryWords: string[], targetTokens: string[]): number {
+  if (targetTokens.length === 0) return 0;
+  return queryWords.filter((qw) => targetTokens.some((t) => tokensMatch(qw, t))).length;
+}
+
+/**
+ * How well this partner actually matches the request — query signal only.
+ * Deliberately excludes "has a photo"/"has a link" quality points: those are
+ * unconditional, so folding them in here gave every irrelevant row a nonzero
+ * score and made a strict relevance cutoff impossible.
+ */
+function productRelevance(product: ProductRow, expandedQuery: string): number {
+  const queryWords = [...new Set(tokenize(expandedQuery))].filter(
+    (w) => w.length >= 3 && !GENERIC_QUERY_TOKENS.has(w),
   );
+  if (queryWords.length === 0) return 0;
+
+  const subTokens = tokenize(product.subcategory ?? "");
+  const tagTokens = tokenize(product.tags ?? "");
+  const nameTokens = tokenize(`${product.nameEn} ${product.nameAr}`);
+  const descTokens = tokenize(`${product.descriptionEn ?? ""} ${product.descriptionAr ?? ""}`);
+
+  // Sheet-curated fields (subcategory, tags) are the most trustworthy signal
+  // of what a partner actually sells; free-text description is the weakest.
+  return (
+    countMatches(queryWords, subTokens) * 6 +
+    countMatches(queryWords, tagTokens) * 4 +
+    countMatches(queryWords, nameTokens) * 3 +
+    countMatches(queryWords, descTokens) * 1
+  );
+}
+
+/** Presentation quality — only ever a tiebreaker between relevant partners. */
+function productQualityBonus(product: ProductRow): number {
+  return (product.imageUrl ? 3 : 0) + (product.affiliateUrl ? 2 : 0);
+}
+
+/** Expects an already-expanded query (see expandQueryForMatching). */
+function rankByQueryRelevance(products: ProductRow[], expandedQuery: string): ProductRow[] {
+  return products
+    .map((product) => ({ product, relevance: productRelevance(product, expandedQuery) }))
+    .filter((entry) => entry.relevance >= MIN_RELEVANCE)
+    .sort(
+      (a, b) =>
+        b.relevance - a.relevance ||
+        productQualityBonus(b.product) - productQualityBonus(a.product),
+    )
+    .map((entry) => entry.product);
 }
 
 // Explicit "give me the whole thing" language — this is what distinguishes
@@ -63,7 +154,13 @@ async function fetchBundleGroup(bundleId: string) {
 
 /** Shoppable, ranked candidate pool for a single search phrase (one bundle "piece" or a plain query). */
 async function searchProducts(query: string, category?: string, take = 8): Promise<ProductRow[]> {
-  const resolvedCategory = resolveProductCategory(query, category);
+  // Expand BEFORE resolving the category, not just before scoring: a specific
+  // item like "mascara" or "oily skin" matches no category keyword on its own,
+  // so category resolution would bail out and the search would return nothing
+  // before the relevance logic ever ran. Expanding first lets "mascara" reach
+  // beauty and "oily skin" reach skincare.
+  const expandedQuery = expandQueryForMatching(query);
+  const resolvedCategory = resolveProductCategory(expandedQuery, category);
   if (!resolvedCategory) return [];
 
   const shoppable = {
@@ -72,17 +169,12 @@ async function searchProducts(query: string, category?: string, take = 8): Promi
     AND: [{ affiliateUrl: { not: null } }, { NOT: { affiliateUrl: "" } }],
   };
 
-  // Rank the FULL shoppable pool for the category (not just an arbitrary
-  // "most recently updated" slice, and not photo-having rows only). The
-  // sheet sometimes has two rows per partner — one with an image, one with
-  // the real subcategory/tags but no image — and a hard photo-first filter
-  // was silently discarding the far more relevant tag-matched row whenever
-  // any photo row existed. productScore() already rewards a real photo
-  // (+3), so a genuine match with no photo still loses to an equally
-  // relevant match that has one — it just no longer loses to an irrelevant
-  // partner purely because that partner happens to have a stock photo.
+  // Rank the FULL shoppable pool for the category, then keep only partners
+  // that clear MIN_RELEVANCE. Returning nothing is the correct answer when
+  // the catalog has no genuine match — surfacing the least-bad row instead is
+  // what produced eyewear for abaya queries and perfume stores for mascara.
   const pool = await prisma.product.findMany({ where: shoppable, orderBy: { updatedAt: "desc" } });
-  return rankByQueryRelevance(pool, query).slice(0, take);
+  return rankByQueryRelevance(pool, expandedQuery).slice(0, take);
 }
 
 /**

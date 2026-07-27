@@ -22,6 +22,7 @@
     "db:seed-category-cards": "npx tsx scripts/seed-category-cards-http.ts",
     "db:studio": "prisma studio",
     "db:validate-links": "npx tsx scripts/validate-affiliate-links.ts",
+    "db:prune-legacy": "npx tsx scripts/prune-legacy-products.ts",
     "postinstall": "prisma generate",
     "rag:index": "npx tsx scripts/prepare-chunks.ts && powershell -ExecutionPolicy Bypass -File scripts/embed-chunks.ps1 && npx tsx scripts/import-embeddings.ts",
     "rag:index:node": "npx tsx scripts/index-kb.ts"
