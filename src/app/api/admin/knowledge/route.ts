@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/auth/admin";
 import { prisma } from "@/lib/db/prisma";
-import { indexSampleKnowledgeBase } from "@/lib/rag/index-service";
+import { indexPendingKnowledgeChunks, indexSampleKnowledgeBase } from "@/lib/rag/index-service";
 
 export async function GET() {
   const admin = await getAdminUser();
@@ -39,7 +39,6 @@ export async function POST(request: Request) {
     },
   });
 
-  // Store as single chunk for MVP — full indexing via reindex endpoint
   await prisma.documentChunk.create({
     data: {
       documentId: doc.id,
@@ -53,7 +52,21 @@ export async function POST(request: Request) {
     data: { status: "uploaded" },
   });
 
-  return NextResponse.json({ document: doc });
+  // Embed immediately so the content is actually usable by the assistant.
+  // Without this the chunk sits with embedding = null and is filtered out of
+  // retrieval forever, which is why previously-added FAQs and documents were
+  // invisible to the chat despite the panel reporting a successful save.
+  // Best-effort: a failed embedding must not lose the admin's content, it
+  // just leaves the row pending for the next reindex.
+  let indexed = false;
+  try {
+    const result = await indexPendingKnowledgeChunks();
+    indexed = result.embedded > 0;
+  } catch (error) {
+    console.error("[admin/knowledge] auto-index failed, left pending", error);
+  }
+
+  return NextResponse.json({ document: doc, indexed });
 }
 
 export async function PUT() {
@@ -61,8 +74,18 @@ export async function PUT() {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const result = await indexSampleKnowledgeBase();
-    return NextResponse.json({ ok: true, ...result });
+    // Refresh the bundled sample KB, then embed everything the admin has
+    // added through the panel. The second step is the one that matters —
+    // reindex used to only re-read the static sample files, so uploaded
+    // documents and FAQs were never actually indexed.
+    const sample = await indexSampleKnowledgeBase();
+    const pending = await indexPendingKnowledgeChunks();
+    return NextResponse.json({
+      ok: true,
+      chunkCount: sample.chunkCount,
+      embedded: pending.embedded,
+      documents: pending.documents,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Index failed";
     return NextResponse.json({ error: message }, { status: 500 });

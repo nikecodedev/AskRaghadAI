@@ -8,11 +8,19 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const locale = url.searchParams.get("locale") === "ar" ? "ar" : "en";
 
-  const docs = await prisma.knowledgeDocument.findMany({
-    where: { category: "faq" },
-    include: { chunks: { orderBy: { chunkIndex: "asc" } } },
-    orderBy: { createdAt: "asc" },
-  });
+  // Degrade to an empty list rather than 500 if the database is briefly
+  // unavailable — the homepage falls back to its built-in FAQ copy, matching
+  // how /api/settings and /api/category-cards already behave.
+  const docs = await prisma.knowledgeDocument
+    .findMany({
+      where: { category: "faq" },
+      include: { chunks: { orderBy: { chunkIndex: "asc" } } },
+      orderBy: { createdAt: "asc" },
+    })
+    .catch((error) => {
+      console.error("[faqs]", error);
+      return [];
+    });
 
   const items = docs
     .map((doc) => {
