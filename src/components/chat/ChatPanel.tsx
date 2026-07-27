@@ -117,18 +117,12 @@ export function ChatPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  useEffect(() => {
-    const scrollActiveField = () => {
-      window.setTimeout(() => {
-        inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-        formRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-      }, 250);
-    };
-
-    const viewport = window.visualViewport;
-    viewport?.addEventListener("resize", scrollActiveField);
-    return () => viewport?.removeEventListener("resize", scrollActiveField);
-  }, []);
+  // NOTE: there used to be a visualViewport "resize" listener here that forced
+  // the input back into view. On mobile that event also fires every time the
+  // browser's address bar collapses or expands — which happens *while the user
+  // scrolls* — so scrolling down through the chat yanked the page back up a
+  // moment later. The composer is `sticky bottom-0`, so it stays visible on its
+  // own and needs no scroll handling at all.
 
   const appendMessage = useCallback((message: ChatMessage) => {
     setHistory((previous) => {
@@ -396,9 +390,11 @@ export function ChatPanel() {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            // "nearest" scrolls only if the field is actually out of view;
+            // "center" forced a jump on every tap even when it was already visible.
             onFocus={() => {
               window.setTimeout(() => {
-                inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+                inputRef.current?.scrollIntoView({ block: "nearest" });
               }, 300);
             }}
             placeholder={inputPlaceholder}

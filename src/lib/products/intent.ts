@@ -79,14 +79,28 @@ const CATEGORY_KEYWORDS: Record<CategoryId, string[]> = {
   home: [
     "home",
     "kitchen",
+    "kitchenware",
     "decor",
     "furniture",
     "noon",
+    // "Kitchen, lifestyle & Coffee World" — coffee is a headline part of this
+    // category and the catalog stocks it (Coffee Break, Microlot Roastery),
+    // so it must be matchable here.
+    "coffee",
+    "espresso",
+    "barista",
+    "roastery",
+    "appliance",
+    "appliances",
     "منزل",
     "مطبخ",
     "ديكور",
     "أثاث",
     "اثاث",
+    "قهوة",
+    "كوفي",
+    "إسبريسو",
+    "اسبريسو",
   ],
   kids: [
     "baby",

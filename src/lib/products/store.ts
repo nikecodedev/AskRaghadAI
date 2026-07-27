@@ -161,20 +161,43 @@ async function searchProducts(query: string, category?: string, take = 8): Promi
   // beauty and "oily skin" reach skincare.
   const expandedQuery = expandQueryForMatching(query);
   const resolvedCategory = resolveProductCategory(expandedQuery, category);
-  if (!resolvedCategory) return [];
 
-  const shoppable = {
+  // When no category keyword matches, search the whole active catalog rather
+  // than giving up. CATEGORY_KEYWORDS is a hand-maintained list, so anything
+  // missing from it used to abort the search before the data was ever looked
+  // at — which is why perfectly stocked items returned nothing ("coffee" is
+  // absent from the home keywords, yet Coffee Break and Microlot Roastery are
+  // both tagged "specialty coffee"). MIN_RELEVANCE, not the category filter,
+  // is what keeps results honest, so widening the pool here costs no
+  // precision: an unmatched query still returns nothing.
+  const shoppableAnyCategory = {
     active: true,
-    category: resolvedCategory,
     AND: [{ affiliateUrl: { not: null } }, { NOT: { affiliateUrl: "" } }],
   };
 
-  // Rank the FULL shoppable pool for the category, then keep only partners
-  // that clear MIN_RELEVANCE. Returning nothing is the correct answer when
-  // the catalog has no genuine match — surfacing the least-bad row instead is
-  // what produced eyewear for abaya queries and perfume stores for mascara.
-  const pool = await prisma.product.findMany({ where: shoppable, orderBy: { updatedAt: "desc" } });
-  return rankByQueryRelevance(pool, expandedQuery).slice(0, take);
+  // Rank the FULL shoppable pool, then keep only partners that clear
+  // MIN_RELEVANCE. Returning nothing is the correct answer when the catalog
+  // has no genuine match — surfacing the least-bad row instead is what
+  // produced eyewear for abaya queries and perfume stores for mascara.
+  const pool = await prisma.product.findMany({
+    where: resolvedCategory ? { ...shoppableAnyCategory, category: resolvedCategory } : shoppableAnyCategory,
+    orderBy: { updatedAt: "desc" },
+  });
+  const ranked = rankByQueryRelevance(pool, expandedQuery);
+  if (ranked.length > 0 || !resolvedCategory) return ranked.slice(0, take);
+
+  // The category guess produced nothing, which usually means the guess itself
+  // was wrong rather than that we have no stock: category scoring keys off
+  // single words, so "baby clothes" lands in fashion (via "clothes") and
+  // "Holiday Home Rentals" lands in home (via "home") even though the real
+  // matches sit in kids and travel. Retry across every category before
+  // concluding there is nothing to show — the relevance gate still applies,
+  // so a genuinely unmatched query keeps returning nothing.
+  const widePool = await prisma.product.findMany({
+    where: shoppableAnyCategory,
+    orderBy: { updatedAt: "desc" },
+  });
+  return rankByQueryRelevance(widePool, expandedQuery).slice(0, take);
 }
 
 /**
