@@ -28,7 +28,13 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
         sizes="(max-width: 640px) 50vw, 240px"
       />
       {href ? (
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-8 text-center text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">
+        // Decorative hover hint only — the real button sits below. Marked
+        // aria-hidden so screen readers don't announce "Buy now" twice, and
+        // so copying the conversation doesn't pick up an invisible label.
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 select-none bg-gradient-to-t from-black/45 to-transparent px-3 pb-2.5 pt-8 text-center text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100"
+        >
           {actionLabel}
         </span>
       ) : null}
