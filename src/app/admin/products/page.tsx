@@ -207,12 +207,31 @@ export default function AdminProductsPage() {
           </div>
         </form>
 
-        <ul className="mt-8 space-y-3">
+        <p className="mt-8 text-xs text-[#7a8b82]">
+          {locale === "ar"
+            ? `${products.filter((p) => p.active).length} منتج ظاهر · ${products.filter((p) => !p.active).length} مخفي`
+            : `${products.filter((p) => p.active).length} live · ${products.filter((p) => !p.active).length} hidden`}
+        </p>
+
+        <ul className="mt-3 space-y-3">
           {products.map((p) => (
-            <li key={p.id} className="luxury-card flex items-center justify-between gap-4 p-4">
+            <li
+              key={p.id}
+              className={`luxury-card flex items-center justify-between gap-4 p-4 ${
+                p.active ? "" : "opacity-60"
+              }`}
+            >
               <div>
-                <p className="font-medium text-[#2c3e35]">
+                <p className="flex items-center gap-2 font-medium text-[#2c3e35]">
                   {locale === "ar" ? p.nameAr : p.nameEn}
+                  {/* The list shows every row, including deactivated ones. Without
+                      this badge a hidden row looks identical to a live one, which
+                      made the catalog appear full of duplicates. */}
+                  {!p.active && (
+                    <span className="shrink-0 rounded-full bg-[#f3ece0] px-2 py-0.5 text-[10px] font-medium text-[#a05a4a]">
+                      {locale === "ar" ? "مخفي" : "Hidden"}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-[#7a8b82]">
                   {p.category}
