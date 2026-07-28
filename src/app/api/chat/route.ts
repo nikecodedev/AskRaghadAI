@@ -9,6 +9,7 @@ import {
 } from "@/lib/rag/openai-rag";
 import type { IndexedChunk, ToolProductMatch } from "@/lib/rag/openai-rag";
 import { findProductsForItem, getProductsForChat } from "@/lib/products/store";
+import { detectCountry } from "@/lib/region/detect";
 import { getBundledProductsForChat } from "@/lib/products/fallback-catalog";
 import { toChatProduct } from "@/lib/products/types";
 import type { ChatProduct } from "@/lib/products/types";
@@ -79,6 +80,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Where the visitor actually is, used to prefer partners that ship to
+    // them. Detected server-side rather than taken from the request body:
+    // this decides which affiliate links someone is sent to, so it should not
+    // be settable by the caller. Null means unknown, which applies no
+    // preference at all rather than guessing a country.
+    const visitorCountry = await detectCountry(request).catch(() => null);
+
     const chunks = await getActiveIndexedChunks().catch((ragError) => {
       console.error("[chat] rag load", ragError);
       return [] as IndexedChunk[];
@@ -104,7 +112,7 @@ export async function POST(request: Request) {
       // resolveProductCategory prioritises the item's own words over the
       // page category, so an aside like "hotel in London" on the Fashion
       // page still resolves to travel instead of being force-matched.
-      const matches = await findProductsForItem(item, category, 3).catch((error) => {
+      const matches = await findProductsForItem(item, category, 3, visitorCountry).catch((error) => {
         console.error("[chat] product tool lookup", error);
         return [];
       });
@@ -206,7 +214,7 @@ export async function POST(request: Request) {
     // instead of recommending — showing a guessed grid there would be exactly
     // the "random unrelated cards" behavior this system replaces.
     if (products.length === 0 && !deferredProducts) {
-      const fallback = await getProductsForChat({ query: searchQuery, category, locale }).catch((error) => {
+      const fallback = await getProductsForChat({ query: searchQuery, category, locale, country: visitorCountry }).catch((error) => {
         console.error("[chat] fallback products", error);
         return { products: [], isBundle: false };
       });

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { resolveProductCategory } from "@/lib/products/intent";
+import { servesCountry } from "@/lib/region/country-match";
 import { identifyBundleComponents, identifySearchTerms } from "@/lib/rag/openai-rag";
 
 export const CHAT_PRODUCTS_LIMIT = 2;
@@ -166,8 +167,27 @@ async function fetchBundleGroup(bundleId: string) {
   return items;
 }
 
+/**
+ * Moves partners that serve the visitor's country to the front, and drops
+ * ones that explicitly serve somewhere else — but only while something is
+ * left. Geo is applied as a preference rather than a hard filter because
+ * Target_Country is blank for 64 of the 164 live partners: filtering strictly
+ * would hide most of the catalog from everyone. A visitor in the UAE should
+ * not be sent to Noon KSA, but they should still get an answer.
+ */
+function applyGeoPreference(products: ProductRow[], country?: string | null): ProductRow[] {
+  if (!country) return products;
+  const inRegion = products.filter((p) => servesCountry(p.targetCountries, country));
+  return inRegion.length > 0 ? inRegion : products;
+}
+
 /** Shoppable, ranked candidate pool for a single search phrase (one bundle "piece" or a plain query). */
-async function searchProducts(query: string, category?: string, take = 8): Promise<ProductRow[]> {
+async function searchProducts(
+  query: string,
+  category?: string,
+  take = 8,
+  country?: string | null,
+): Promise<ProductRow[]> {
   // Expand BEFORE resolving the category, not just before scoring: a specific
   // item like "mascara" or "oily skin" matches no category keyword on its own,
   // so category resolution would bail out and the search would return nothing
@@ -198,7 +218,9 @@ async function searchProducts(query: string, category?: string, take = 8): Promi
     orderBy: { updatedAt: "desc" },
   });
   const ranked = rankByQueryRelevance(pool, expandedQuery);
-  if (ranked.length > 0 || !resolvedCategory) return ranked.slice(0, take);
+  if (ranked.length > 0 || !resolvedCategory) {
+    return applyGeoPreference(ranked, country).slice(0, take);
+  }
 
   // The category guess produced nothing, which usually means the guess itself
   // was wrong rather than that we have no stock: category scoring keys off
@@ -211,7 +233,7 @@ async function searchProducts(query: string, category?: string, take = 8): Promi
     where: shoppableAnyCategory,
     orderBy: { updatedAt: "desc" },
   });
-  return rankByQueryRelevance(widePool, expandedQuery).slice(0, take);
+  return applyGeoPreference(rankByQueryRelevance(widePool, expandedQuery), country).slice(0, take);
 }
 
 /**
@@ -297,10 +319,11 @@ export async function getProductsForChat(options: {
   category?: string;
   limit?: number;
   locale?: "en" | "ar";
+  country?: string | null;
 }): Promise<{ products: ProductRow[]; isBundle: boolean }> {
-  const { query = "", category, limit = CHAT_PRODUCTS_LIMIT, locale = "en" } = options;
+  const { query = "", category, limit = CHAT_PRODUCTS_LIMIT, locale = "en", country } = options;
   const wantsBundle = BUNDLE_INTENT_HINT.test(query);
-  const ranked = await searchProducts(query, category, Math.max(limit * 4, 8));
+  const ranked = await searchProducts(query, category, Math.max(limit * 4, 8), country);
 
   // Bundle intent is checked independently of whether the raw query resolved
   // a category above — autoAssembleBundle does its own per-piece category
@@ -346,8 +369,9 @@ export async function findProductsForItem(
   item: string,
   category?: string,
   take = 3,
+  country?: string | null,
 ): Promise<ProductRow[]> {
-  return searchProducts(item, category, take);
+  return searchProducts(item, category, take, country);
 }
 
 export async function listAllProducts() {
