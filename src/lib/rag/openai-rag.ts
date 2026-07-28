@@ -199,6 +199,24 @@ function keywordOnlyRetrieve(
     .map((r) => r.chunk);
 }
 
+/**
+ * Minimum hybrid score for a chunk to be worth showing the model.
+ *
+ * Without a floor, topK always returns 5 chunks no matter how weak the match,
+ * so a shopping question got the knowledge base's home-decor paragraph injected
+ * as authoritative context and answered from it instead of calling
+ * find_products — "أريد شراء عباية" (buy an abaya) came back talking about
+ * kitchen and home decor. It hurt Arabic worst: with few indexed chunks, every
+ * Arabic query collapsed onto the same generic blob.
+ *
+ * Measured against the live index rather than guessed. Real knowledge-base
+ * questions ("ما هو رغد AI؟", "What is Raghad AI?") score 0.62-1.19, while
+ * shopping queries in both languages peak at 0.46, so 0.55 sits in the gap:
+ * it keeps every genuine match and drops the noise. Returning nothing is the
+ * right outcome for a shopping question — the product tool answers those.
+ */
+const MIN_CHUNK_RELEVANCE = 0.55;
+
 export async function retrieveChunks(
   indexed: IndexedChunk[],
   query: string,
@@ -209,6 +227,8 @@ export async function retrieveChunks(
   const queryEmbedding = await tryEmbedQuery(expandedQuery);
 
   if (!queryEmbedding) {
+    // Keyword-only scores are on a different scale to the hybrid score the
+    // threshold was measured against, so it is deliberately not applied here.
     return keywordOnlyRetrieve(indexed, searchText, topK);
   }
 
@@ -218,7 +238,7 @@ export async function retrieveChunks(
     denseScores.set(chunk.id, cosineSimilarity(queryEmbedding, chunk.embedding));
   }
   const merged = hybridMerge(indexed, query, denseScores, { topK });
-  return merged.map((r) => r.item);
+  return merged.filter((r) => r.score >= MIN_CHUNK_RELEVANCE).map((r) => r.item);
 }
 
 function buildSystemPrompt(locale: "en" | "ar", category?: string): string {

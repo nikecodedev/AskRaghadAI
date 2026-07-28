@@ -345,6 +345,56 @@ export async function pullProductsFromSheet() {
 }
 
 /**
+ * Turns specific products on or off in both places at once.
+ *
+ * The sheet is the source of truth for the Active column, and a blank cell
+ * parses as active — so flipping `active` in the database alone is undone by
+ * the very next pull. This writes the matching sheet cells too, but only the
+ * Active column of the affected rows, unlike pushProductsToSheet which
+ * rewrites every managed column of every row and would discard sheet edits
+ * made since the last sync.
+ *
+ * Rows are matched by DB_ID, so a product created in the admin panel and never
+ * linked to a sheet row is updated in the database only; those are reported
+ * back as `unlinked` rather than failing silently.
+ */
+export async function setProductsActive(ids: string[], active: boolean) {
+  if (ids.length === 0) return { updated: 0, sheetRowsWritten: 0, unlinked: [] as string[] };
+
+  const updated = (await prisma.product.updateMany({ where: { id: { in: ids } }, data: { active } })).count;
+
+  const { sheets, spreadsheetId, map, rows } = await loadSheet();
+  if (map.active === undefined || map.dbId === undefined) {
+    // No Active or DB_ID column to anchor to — the database is still correct,
+    // but a later pull may flip these back, so say so instead of pretending.
+    return { updated, sheetRowsWritten: 0, unlinked: ids };
+  }
+
+  const letter = columnLetter(map.active);
+  const rowByDbId = new Map(rows.filter((r) => r.dbId).map((r) => [r.dbId, r]));
+  const data = ids
+    .map((id) => rowByDbId.get(id))
+    .filter((row): row is SheetRow => Boolean(row))
+    .map((row) => ({
+      range: `${PRODUCT_SHEET_TAB}!${letter}${row.rowNumber}`,
+      values: [[active ? "TRUE" : "FALSE"]],
+    }));
+
+  if (data.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: { valueInputOption: "RAW", data },
+    });
+  }
+
+  return {
+    updated,
+    sheetRowsWritten: data.length,
+    unlinked: ids.filter((id) => !rowByDbId.has(id)),
+  };
+}
+
+/**
  * Pushes database products back to the sheet: products already linked to a
  * sheet row (by DB_ID) get that row's cells refreshed; products with no
  * linked row (e.g. created directly in the admin panel) are appended as new
