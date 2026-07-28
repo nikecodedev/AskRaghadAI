@@ -109,7 +109,13 @@ export async function POST(request: Request) {
         return [];
       });
       matches.forEach((m) => fullProductRows.set(m.id, toChatProduct(m, locale)));
-      return matches.map((m) => ({ id: m.id, nameEn: m.nameEn, nameAr: m.nameAr }));
+      return matches.map((m) => ({
+        id: m.id,
+        nameEn: m.nameEn,
+        nameAr: m.nameAr,
+        description: (locale === "ar" ? m.descriptionAr : m.descriptionEn) ?? m.descriptionEn ?? undefined,
+        subcategory: m.subcategory ?? undefined,
+      }));
     };
 
     let rawAnswer: string;

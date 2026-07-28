@@ -141,7 +141,15 @@ function rankByQueryRelevance(products: ProductRow[], expandedQuery: string): Pr
         b.relevance - a.relevance ||
         productQualityBonus(b.product) - productQualityBonus(a.product),
     )
-    .map((entry) => entry.product);
+    .map((entry) => entry.product)
+    // The sheet contains more than one row for some partners (two "Abaya
+    // Amol" rows, for instance), which surfaced the same store twice in one
+    // answer — the model then labelled the second one "(Alternative)" as if
+    // it were a different shop. Keep only the best-scoring row per store.
+    .filter((product, index, all) => {
+      const key = product.nameEn.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return all.findIndex((other) => other.nameEn.toLowerCase().replace(/[^a-z0-9]/g, "") === key) === index;
+    });
 }
 
 // Explicit "give me the whole thing" language — this is what distinguishes
