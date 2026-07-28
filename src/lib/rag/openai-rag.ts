@@ -313,8 +313,13 @@ function buildUserContent(query: string, context: string, locale: "en" | "ar"): 
 export type ToolProductMatch = { id: string; nameEn: string; nameAr: string };
 export type ToolProductLookup = (item: string) => Promise<ToolProductMatch[]>;
 
-const MAX_TOOL_ITERATIONS = 6;
-const MAX_TOOL_CALLS_TOTAL = 8;
+// Each iteration is a full OpenAI round trip that re-sends the system prompt,
+// the conversation and every tool result so far, so the cost of a single user
+// message grows with this number. Four is enough for the deepest real case
+// (a trip needing flight + hotel + eSIM) while cutting worst-case spend by a
+// third versus six.
+const MAX_TOOL_ITERATIONS = 4;
+const MAX_TOOL_CALLS_TOTAL = 6;
 
 function buildProductTools() {
   return [

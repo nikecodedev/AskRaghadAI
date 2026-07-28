@@ -22,15 +22,25 @@ import { persistChatExchange } from "@/lib/chat/persist";
 
 export const maxDuration = 60;
 
+// A real question is never this long. Without a cap the whole body is
+// forwarded to OpenAI and re-sent on every tool-calling round, so a single
+// oversized request could burn a large amount of credit (an 80,000-character
+// query was accepted before this limit existed).
+const MAX_QUERY_CHARS = 2000;
+// Images are billed by size on vision calls; refuse anything beyond a normal
+// phone photo rather than paying for it.
+const MAX_IMAGE_CHARS = 1_500_000; // ~1MB after base64 encoding
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const query = String(body.query ?? "").trim();
+    const query = String(body.query ?? "").trim().slice(0, MAX_QUERY_CHARS);
     const locale = body.locale === "ar" ? "ar" : "en";
     const category = body.category ? String(body.category) : undefined;
-    const image = typeof body.image === "string" && body.image.startsWith("data:image")
+    const rawImage = typeof body.image === "string" && body.image.startsWith("data:image")
       ? body.image
       : undefined;
+    const image = rawImage && rawImage.length <= MAX_IMAGE_CHARS ? rawImage : undefined;
     type HistoryTurn = { role: "user" | "assistant"; content: string };
     const rawHistory: unknown[] = Array.isArray(body.history) ? body.history : [];
     const history: HistoryTurn[] = rawHistory
