@@ -268,6 +268,7 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
 مهمتك: قدّم إجابة مباشرة ومفيدة وشخصية داخل المحادثة — نصائح، توصيات، خطط سفر، روتين عناية، وأفكار عملية.
 
 قواعد الرد:
+- حاسم: أجب بنفس لغة آخر رسالة من المستخدم. قد تكون الرسائل السابقة في المحادثة بلغة أخرى — تجاهل ذلك تماماً وطابق لغة الرسالة التي تجيب عنها الآن. إذا كانت هذه الرسالة بالإنجليزية، أجب بالإنجليزية حتى لو كان كل ما قبلها بالعربية.
 - حاسم: أسماء أقسامنا الرسمية الست بالضبط هي: ${categoryList}. عند ذكر أو سرد أي قسم، انسخ إحدى هذه السلاسل النصية الست حرفياً — لا تختصرها أو تدمجها أو تعيد صياغتها أبداً (مثلاً لا تكتب "الأزياء والعبايات" أو "ديكور المنزل والمطبخ"، هذه أسماء قديمة).
 - حاسم: كل رد ترسله يجب أن ينتهي إما (أ) بعنصر نائب واحد على الأقل [[card:ID]] أو [[bundle:ID,...]] مدعوم بنتيجة حقيقية من find_products، أو (ب) بالرمز الدقيق [[no-cards]] في سطر مستقل إن لم يكن كذلك. لا يوجد خيار ثالث — لا ترسل رداً بدون أي منهما أبداً. هذا الرمز لا يظهر للمستخدم أبداً؛ فقط يخبر النظام بعدم اقتراح منتج عشوائي لرد لا يرشّح شيئاً محدداً.
 - أنت مستشارة تفاعلية، لست محرك بحث ثابتاً. لا تطرح أسئلة توضيحية إلا إذا كان الطلب لا يعطيك أي شيء تعمل به إطلاقاً (مثل "أريد إطلالة" فقط). أما إذا ذكر المستخدم مناسبة أو عنصراً أو وجهة أو غرضاً — مثل "إطلالة كاملة لحفل زفاف الأسبوع القادم" أو "رحلة إلى دبي" أو "عطر للسهرات" — فهذا كافٍ تماماً: قدّم الترشيح فوراً ببطاقات منتجات حقيقية، ويمكنك أن تذكر بعدها أنك تستطيع تحسين الاختيار حسب المقاس أو اللون أو الميزانية. لا تؤجل طلباً له مناسبة واضحة بجولة أسئلة أخرى، فذلك يبدو وكأن المساعد يرفض المساعدة.
@@ -290,6 +291,7 @@ ${cardRulesAr}
 Your job: give a direct, useful, personalised answer inside the chat — advice, recommendations, travel itineraries, skincare routines, and practical ideas.
 
 Response rules:
+- CRITICAL: reply in the SAME language as the user's most recent message. Earlier turns in the conversation above may be in a different language — ignore that entirely and match the message you are answering right now. If this message is in English, answer in English even when everything above it is Arabic.
 - CRITICAL: our 6 official category names are exactly: ${categoryList}. Whenever you name or list a category, copy one of these 6 strings exactly, character for character — never shorten, merge, or paraphrase them (e.g. never write "Fashion & Abayas" or "Home Decor & Kitchen", those are outdated names).
 - CRITICAL: every single reply you send must end with either (a) at least one [[card:ID]] or [[bundle:ID,...]] placeholder backed by a real find_products result, or (b) the exact token [[no-cards]] on its own line if it does not. There is no third option — never send a reply with neither. This token is never shown to the user, it only tells the system not to guess a random product for a reply that isn't recommending anything specific.
 - You are a conversational advisor, not a static search engine. Ask clarifying questions ONLY when the request gives you nothing at all to work with (a bare "I need an outfit"). If the user names an occasion, an item, a destination or a purpose — "a full outfit for a wedding next week", "a trip to Dubai", "a perfume for evenings" — that is already enough: recommend now with real product cards, and mention that you can refine by size, colour or budget afterwards. Do not stall a request that has a clear occasion behind another round of questions; it reads as the assistant refusing to help.
@@ -391,6 +393,18 @@ export async function generateAnswerWithTools(
       ]
     : userText;
 
+  // Answer in the language the user actually just wrote in, not the language
+  // the rest of the thread happens to be in. A rule in the system prompt is
+  // not enough on its own: after several Arabic turns the conversation itself
+  // pulls the model into Arabic even for an English question (reproduced 3/3).
+  // Repeating the instruction immediately before the current message — the
+  // most recent thing the model sees — is what actually holds.
+  const replyLanguage = query.trim() ? (/[؀-ۿ]/.test(query) ? "ar" : "en") : locale;
+  const languageReminder =
+    replyLanguage === "ar"
+      ? "تنبيه: اكتب ردّك التالي بالعربية، بغضّ النظر عن لغة الرسائل السابقة."
+      : "Reminder: write your next reply in English, regardless of the language of the earlier messages.";
+
   const messages: {
     role: "system" | "user" | "assistant" | "tool";
     content: unknown;
@@ -399,6 +413,7 @@ export async function generateAnswerWithTools(
   }[] = [
     { role: "system", content: buildSystemPrompt(locale, category) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
+    ...(history.length > 0 ? [{ role: "system" as const, content: languageReminder }] : []),
     { role: "user", content: userContent },
   ];
 

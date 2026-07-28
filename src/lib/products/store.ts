@@ -39,7 +39,10 @@ const CONCEPT_EXPANSIONS: { pattern: RegExp; add: string }[] = [
   { pattern: /handbag|purse|clutch|tote|حقيبة|شنطة|حقائب/i, add: "bags handbag handbags" },
   { pattern: /shoe|shoes|sneaker|heels|sandal|boots|حذاء|أحذية|احذية/i, add: "shoes footwear" },
   { pattern: /watch|watches|ساعة|ساعات/i, add: "watches" },
-  { pattern: /jewel|jewelry|gold|ring|necklace|earring|bracelet|مجوهرات|ذهب|خاتم|قلادة/i, add: "jewelry accessories" },
+  // "accessories" is deliberately NOT included: it appears in the tags of
+  // general clothing partners (G-Star RAW, Diesel, Shein), so adding it made
+  // a jewellery query return jeans brands.
+  { pattern: /jewel|jewelry|jewellery|gold|ring|necklace|earring|bracelet|مجوهرات|ذهب|خاتم|قلادة|أقراط/i, add: "jewelry jewellery" },
   { pattern: /hotel|hotels|resort|stay|accommodation|فندق|فنادق|إقامة/i, add: "hotel hotels booking" },
   { pattern: /flight|flights|airline|airfare|plane ticket|طيران|تذاكر طيران/i, add: "flight flights" },
   { pattern: /esim|e-sim|sim card|data plan|شريحة|اي سيم/i, add: "esim" },
@@ -67,6 +70,9 @@ const GENERIC_QUERY_TOKENS = new Set([
   "buy", "best", "good", "nice", "great", "recommend", "recommendation", "recommendations",
   "option", "options", "thing", "things", "online", "need", "want", "looking", "please",
   "gift", "gifts", "new", "top", "for", "the", "and", "with", "from",
+  // Almost every clothing partner lists "accessories", so on its own it says
+  // nothing about what a store actually sells.
+  "accessories", "accessory",
 ]);
 
 /** Splits into comparable word tokens, keeping Arabic letters intact. */
