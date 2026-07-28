@@ -25,7 +25,8 @@
     "db:prune-legacy": "npx tsx scripts/prune-legacy-products.ts",
     "postinstall": "prisma generate",
     "rag:index": "npx tsx scripts/prepare-chunks.ts && powershell -ExecutionPolicy Bypass -File scripts/embed-chunks.ps1 && npx tsx scripts/import-embeddings.ts",
-    "rag:index:node": "npx tsx scripts/index-kb.ts"
+    "rag:index:node": "npx tsx scripts/index-kb.ts",
+    "og:generate": "npx tsx scripts/generate-og-image.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

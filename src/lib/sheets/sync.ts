@@ -196,12 +196,33 @@ function parseImageUrl(raw: string): string | null {
   return raw;
 }
 
+/**
+ * Only a real http(s) address becomes a buy link. Anything else in the
+ * Affiliate_Link cell is rejected, because whatever it is, it cannot work as
+ * a destination — the card would render a Buy Now button that goes nowhere.
+ * This has caught a boolean from a column-mapping slip ("TRUE") and discount
+ * codes typed into the wrong column ("Discount Code: NM408").
+ */
 function parseAffiliateUrl(raw: string): string | null {
   if (!raw) return null;
-  // Guards against a column-mapping slip silently storing a boolean/flag
-  // value ("TRUE") as a product's buy link.
-  if (/^(true|false|yes|no|active|inactive)$/i.test(raw.trim())) return null;
-  return raw;
+  return /^https?:\/\//i.test(raw.trim()) ? raw.trim() : null;
+}
+
+/**
+ * Recovers a discount code that was typed into the Affiliate_Link column
+ * instead of Discount_Code, so rejecting the bad link doesn't also throw away
+ * a code the client negotiated. Only used when Discount_Code itself is empty.
+ */
+function extractDiscountCode(raw: string): string | null {
+  if (!raw || /^https?:\/\//i.test(raw.trim())) return null;
+  const labelled = raw.match(/(?:discount|promo|coupon)\s*code\s*[:\-]?\s*([A-Za-z0-9_-]{3,})/i);
+  if (labelled) return labelled[1];
+  // A bare token that looks like a code (no spaces, mixed alphanumerics).
+  const bare = raw.trim();
+  if (/^[A-Za-z0-9_-]{3,20}$/.test(bare) && /\d/.test(bare) && !/^(true|false|yes|no)$/i.test(bare)) {
+    return bare;
+  }
+  return null;
 }
 
 function parseActive(raw: string): boolean {
@@ -268,7 +289,7 @@ export async function pullProductsFromSheet() {
     price: parsePrice(row.price),
     currency: row.currency || "SAR",
     affiliateUrl: parseAffiliateUrl(row.affiliateLink),
-    discountCode: row.discountCode || null,
+    discountCode: row.discountCode || extractDiscountCode(row.affiliateLink),
     targetCountries: row.targetCountry || null,
     tags: row.keywords || null,
     bundleId: row.bundleId || null,

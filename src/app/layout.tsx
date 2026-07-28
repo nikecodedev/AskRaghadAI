@@ -30,11 +30,59 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "600"],
 });
 
-export const metadata: Metadata = {
-  title: "Raghad AI | Askraghadai.com",
-  description:
-    "Your AI-powered companion for fashion, beauty, skincare, home, kids, and travel.",
-};
+const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://askraghadai.com").replace(/\/$/, "");
+
+/**
+ * Locale-aware metadata, including the Open Graph and Twitter tags that decide
+ * how a shared link looks in WhatsApp, X and LinkedIn. Written as
+ * generateMetadata rather than a static export so the preview text matches the
+ * visitor's language, and so metadataBase resolves the image to an absolute
+ * URL — social crawlers reject relative paths.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = parseLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const isAr = locale === "ar";
+
+  const title = isAr ? "رغد AI | Askraghadai.com" : "Raghad AI | Askraghadai.com";
+  const description = isAr
+    ? "مساعدك الذكي للأزياء والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر، مع توصيات وروابط تسوق موثوقة."
+    : "Your AI-powered companion for fashion, beauty, skincare, home, kids, and travel, with trusted recommendations and shopping links.";
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title,
+    description,
+    applicationName: "Raghad AI",
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      siteName: "Raghad AI",
+      url: SITE_URL,
+      title,
+      description,
+      locale: isAr ? "ar_SA" : "en_US",
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "Raghad AI — Askraghadai.com",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/og-image.png"],
+    },
+    icons: {
+      icon: "/brand/mark.png",
+      apple: "/brand/mark.png",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
