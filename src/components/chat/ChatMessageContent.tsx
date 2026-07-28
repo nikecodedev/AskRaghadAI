@@ -52,12 +52,25 @@ function InlineCards({
   mode,
   ids,
   productMap,
+  alreadyShown,
 }: {
   mode: "card" | "bundle";
   ids: string[];
   productMap: Map<string, ChatProduct>;
+  /** Ids rendered earlier in this message, so a partner is never shown twice. */
+  alreadyShown: Set<string>;
 }) {
-  const products = ids.map((id) => productMap.get(id)).filter((p): p is ChatProduct => Boolean(p));
+  // The assistant may search more than once for related things ("clutch",
+  // then "handbag") and get the same partner back each time, then place a
+  // placeholder for both — which rendered the identical card twice in a row.
+  const products = ids
+    .map((id) => productMap.get(id))
+    .filter((p): p is ChatProduct => Boolean(p))
+    .filter((p) => {
+      if (alreadyShown.has(p.id)) return false;
+      alreadyShown.add(p.id);
+      return true;
+    });
   if (products.length === 0) return null;
 
   if (mode === "bundle" && products.length > 1) {
@@ -91,6 +104,7 @@ export function ChatMessageContent({
   // through them to keep "1, 2, 3..." continuous instead of every segment
   // after the first marker restarting its own <ol> at 1.
   let nextOrderedStart = 1;
+  const alreadyShown = new Set<string>();
 
   return (
     <div className="chat-message-body space-y-2" dir={dir}>
@@ -104,7 +118,16 @@ export function ChatMessageContent({
             </div>
           );
         }
-        if (seg.type === "cards") return <InlineCards key={i} mode={seg.mode} ids={seg.ids} productMap={productMap} />;
+        if (seg.type === "cards")
+          return (
+            <InlineCards
+              key={i}
+              mode={seg.mode}
+              ids={seg.ids}
+              productMap={productMap}
+              alreadyShown={alreadyShown}
+            />
+          );
         return (
           <a
             key={i}

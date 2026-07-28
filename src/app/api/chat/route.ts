@@ -176,16 +176,27 @@ export async function POST(request: Request) {
     let fallbackGrid = false;
     let isBundle = false;
 
-    // The model itself found real products via find_products, but sometimes
-    // forgets to place any [[card:ID]] / [[bundle:...]] placeholder in its
-    // final text at all — usedProductIds is non-empty, but nothing in the
-    // reply actually references them, so zero cards would render. Show what
-    // was genuinely found as a plain grid rather than silently losing it —
-    // this is real, intent-matched data, not a guess, so it still respects
-    // "never show unrelated cards".
+    // The model sometimes finds real products but forgets to place any
+    // placeholder, in which case showing them as a grid is better than
+    // silently losing them.
+    //
+    // But it may equally have searched and then deliberately rejected every
+    // result as unsuitable ("I don't have a partner for pens"). Forcing a
+    // grid there contradicts the reply and reintroduces exactly the unrelated
+    // cards this system exists to prevent — a lunch-bag retailer appeared
+    // under a reply saying no evening bag was found. Distinguish the two by
+    // whether the reply actually names any of the partners: naming one means
+    // it meant to show it, naming none means it chose not to.
     const hasInlineMarker = /\[\[(card|bundle):/.test(answer);
+    const answerNamesAPartner = products.some((p) =>
+      p.name && answer.toLowerCase().includes(p.name.toLowerCase()),
+    );
     if (products.length > 0 && !hasInlineMarker) {
-      fallbackGrid = true;
+      if (answerNamesAPartner) {
+        fallbackGrid = true;
+      } else {
+        products = []; // the reply declined to recommend any of them
+      }
     }
 
     // The model made zero find_products calls (or none matched) — fall back
