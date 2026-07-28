@@ -10,7 +10,19 @@ import { CopyCodeButton } from "@/components/chat/CopyCodeButton";
  * Client requirement: show a real product PHOTO that is clickable and opens
  * the affiliate link (not a brand-logo placeholder).
  */
-export function ChatProductCard({ product }: { product: ChatProduct }) {
+export function ChatProductCard({
+  product,
+  hideDescription = false,
+}: {
+  product: ChatProduct;
+  /**
+   * Set when the card is rendered inline, directly under the assistant's own
+   * write-up of that partner. The reply already describes the store there, so
+   * repeating the description on the card printed the same sentence twice.
+   * The standalone grid keeps it, since nothing else describes the store.
+   */
+  hideDescription?: boolean;
+}) {
   const { messages } = useApp();
   const href = product.affiliateUrl;
   const imageSrc = product.imageUrl || "/brand/mark.png";
@@ -71,7 +83,7 @@ export function ChatProductCard({ product }: { product: ChatProduct }) {
           <h3 className="text-base font-semibold text-[#24332c]">{product.name}</h3>
         )}
 
-        {product.description && (
+        {product.description && !hideDescription && (
           <p className="luxury-muted mt-1.5 line-clamp-2 text-sm leading-6">{product.description}</p>
         )}
 

@@ -80,7 +80,10 @@ function InlineCards({
   return (
     <div className="my-2 grid gap-3 sm:grid-cols-2">
       {products.map((p) => (
-        <ChatProductCard key={p.id} product={p} />
+        // Inline: the assistant has just described this partner in the line
+        // above, so the card omits its own description to avoid printing the
+        // same sentence twice.
+        <ChatProductCard key={p.id} product={p} hideDescription />
       ))}
     </div>
   );
