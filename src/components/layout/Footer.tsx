@@ -13,11 +13,16 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-[#ddd0b8]/50 bg-[#faf6ef]">
+      {/* Navigation gets its own line, with the copyright and update note on a
+          second line beneath it. Previously all three sat in one justified row,
+          which squeezed the links until "Contact Us" wrapped alone onto a
+          second line while the note was crushed against the copyright. This
+          also matches the legal row below, so the footer reads as one block. */}
       <div
-        className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:py-10"
+        className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:py-10"
         style={{ direction: isAr ? "rtl" : "ltr" }}
       >
-        <div className="flex flex-wrap gap-5 text-base font-semibold">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 text-base font-semibold">
           <Link href="/" className="text-[#3d4f45] hover:text-[#2c6e55]">
             {messages.nav.home}
           </Link>
@@ -37,12 +42,14 @@ export function Footer() {
             {messages.nav.contact}
           </Link>
         </div>
-        <p className="text-base font-medium text-[#4f5f56]">
-          © {new Date().getFullYear()} Askraghadai.com
-        </p>
-        {!hideUpdateNote ? (
-          <p className="luxury-note font-medium">{messages.footer.note}</p>
-        ) : null}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+          <p className="text-base font-medium text-[#4f5f56]">
+            © {new Date().getFullYear()} Askraghadai.com
+          </p>
+          {!hideUpdateNote ? (
+            <p className="luxury-note max-w-xl font-medium">{messages.footer.note}</p>
+          ) : null}
+        </div>
       </div>
 
       {/* Legal links and the affiliate disclosure sit in their own row, below
