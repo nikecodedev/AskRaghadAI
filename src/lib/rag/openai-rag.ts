@@ -202,20 +202,24 @@ function keywordOnlyRetrieve(
 /**
  * Minimum hybrid score for a chunk to be worth showing the model.
  *
- * Without a floor, topK always returns 5 chunks no matter how weak the match,
- * so a shopping question got the knowledge base's home-decor paragraph injected
- * as authoritative context and answered from it instead of calling
- * find_products — "أريد شراء عباية" (buy an abaya) came back talking about
- * kitchen and home decor. It hurt Arabic worst: with few indexed chunks, every
- * Arabic query collapsed onto the same generic blob.
+ * Without any floor, topK returns 5 chunks no matter how weak the match, so an
+ * unrelated paragraph gets injected as authoritative context on every question.
  *
- * Measured against the live index rather than guessed. Real knowledge-base
- * questions ("ما هو رغد AI؟", "What is Raghad AI?") score 0.62-1.19, while
- * shopping queries in both languages peak at 0.46, so 0.55 sits in the gap:
- * it keeps every genuine match and drops the noise. Returning nothing is the
- * right outcome for a shopping question — the product tool answers those.
+ * Deliberately set low. An earlier 0.55 was calibrated when the index held
+ * only nine chunks, all describing the platform itself, where genuine matches
+ * scored 0.62-1.19 and everything else looked like noise. Real content changed
+ * that: the shipping, returns and sizing policies score 0.45-0.80, so 0.55
+ * silently hid four of those six questions — including ones where the correct
+ * chunk was ranked first. Hiding real answers is a definite harm; weak chunks
+ * merely sitting in context is a mild one, since the system prompt already
+ * directs product questions to find_products. So the floor only removes the
+ * clearly-unrelated tail (a hotel query's best chunk scored 0.31) and leaves
+ * borderline matches in.
+ *
+ * Re-measure this if the knowledge base grows substantially — a threshold
+ * tuned against a small index does not stay correct as content is added.
  */
-const MIN_CHUNK_RELEVANCE = 0.55;
+const MIN_CHUNK_RELEVANCE = 0.35;
 
 export async function retrieveChunks(
   indexed: IndexedChunk[],

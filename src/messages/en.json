@@ -252,6 +252,24 @@
     ]
   },
   "footer": {
-    "note": "Content is updated periodically to ensure the best recommendations."
+    "note": "Content is updated periodically to ensure the best recommendations.",
+    "disclosure": "(Note: We may earn an affiliate commission from merchants listed on this site when you make a purchase through our links, at no extra cost to you).",
+    "disclaimer": "Disclaimer",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "legal": {
+    "disclaimer": {
+      "title": "Disclaimer",
+      "body": "Our site is an affiliate marketing platform. We do not directly sell or ship products. When you click links and buy, we may earn a commission at no extra cost to you. All prices, shipping, and return policies are subject to the original merchants. We disclaim any liability for disputes with external merchants. AI answers are for guidance only."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "body": "We care about your privacy. We may collect basic browsing data and AI interaction history to improve recommendations, without sharing your personal data with third parties except for secure affiliate redirection."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "body": "By using our site or interacting with the AI assistant, you agree to our Terms of Service. We are not responsible for any price changes, product availability, or potential errors in external merchant links."
+    }
   }
 }

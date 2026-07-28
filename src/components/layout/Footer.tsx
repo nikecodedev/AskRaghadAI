@@ -44,6 +44,31 @@ export function Footer() {
           <p className="luxury-note font-medium">{messages.footer.note}</p>
         ) : null}
       </div>
+
+      {/* Legal links and the affiliate disclosure sit in their own row, below
+          the main navigation. The disclosure has to be visible on every page
+          rather than buried on the disclaimer page — that is the point of it. */}
+      <div
+        className="border-t border-[#ddd0b8]/40 px-4 py-6"
+        style={{ direction: isAr ? "rtl" : "ltr" }}
+      >
+        <div className="mx-auto flex max-w-6xl flex-col gap-3">
+          <div className="flex flex-wrap gap-5 text-sm font-semibold">
+            <Link href="/disclaimer" className="text-[#3d4f45] hover:text-[#2c6e55]">
+              {messages.footer.disclaimer}
+            </Link>
+            <Link href="/privacy" className="text-[#3d4f45] hover:text-[#2c6e55]">
+              {messages.footer.privacy}
+            </Link>
+            <Link href="/terms" className="text-[#3d4f45] hover:text-[#2c6e55]">
+              {messages.footer.terms}
+            </Link>
+          </div>
+          <p className="max-w-4xl text-sm leading-6 text-[#5f6d63]">
+            {messages.footer.disclosure}
+          </p>
+        </div>
+      </div>
     </footer>
   );
 }
