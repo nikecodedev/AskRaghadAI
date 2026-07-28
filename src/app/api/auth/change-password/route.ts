@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getSession } from "@/lib/auth/session";
+import { COOKIE_NAME, createSessionToken, getSession } from "@/lib/auth/session";
 import { findUserById, updateUserPassword } from "@/lib/auth/user-store";
 import { authErrorMessage } from "@/lib/auth/errors";
 
@@ -22,9 +22,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       return NextResponse.json(
-        { error: "New password must be at least 6 characters" },
+        { error: "New password must be at least 8 characters" },
         { status: 400 },
       );
     }
@@ -49,7 +49,25 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await updateUserPassword(user.id, passwordHash);
 
-    return NextResponse.json({ ok: true });
+    // updateUserPassword bumps tokenVersion, which invalidates every session
+    // issued before this point — including the one making this request. Hand
+    // back a freshly signed cookie so the person who just changed their own
+    // password stays signed in, while any other device is logged out.
+    const refreshed = await findUserById(user.id);
+    const token = await createSessionToken({
+      userId: user.id,
+      email: user.email,
+      tv: refreshed?.tokenVersion ?? 0,
+    });
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return response;
   } catch (error) {
     console.error("[change-password]", error);
     return NextResponse.json(

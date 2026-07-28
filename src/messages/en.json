@@ -178,7 +178,7 @@
     "resetSuccess": "Your password has been updated. You can sign in now.",
     "backToLogin": "Back to sign in",
     "invalidResetLink": "This reset link is invalid or expired.",
-    "passwordTooShort": "Password must be at least 6 characters.",
+    "passwordTooShort": "Password must be at least 8 characters.",
     "passwordMismatch": "Passwords do not match.",
     "changePasswordTitle": "Change password",
     "changePasswordSubtitle": "Update your password while signed in. You'll need your current password.",

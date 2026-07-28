@@ -26,7 +26,7 @@ function ResetPasswordForm() {
       setError(messages.auth.invalidResetLink);
       return;
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(messages.auth.passwordTooShort);
       return;
     }
@@ -86,7 +86,7 @@ function ResetPasswordForm() {
               id="new-password"
               type="password"
               required
-              minLength={6}
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="luxury-input"
@@ -102,7 +102,7 @@ function ResetPasswordForm() {
               id="confirm-password"
               type="password"
               required
-              minLength={6}
+              minLength={8}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="luxury-input"

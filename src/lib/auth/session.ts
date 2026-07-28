@@ -19,6 +19,14 @@ function secret() {
 export type SessionPayload = {
   userId: string;
   email: string;
+  /**
+   * The user's tokenVersion at the moment this session was issued. Compared
+   * against the stored value on each admin/session check, so changing a
+   * password immediately invalidates every session created before it.
+   * Optional so tokens issued before this field existed still parse — they
+   * are simply treated as version 0.
+   */
+  tv?: number;
 };
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {

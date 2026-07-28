@@ -14,6 +14,11 @@ model User {
   passwordHash  String
   role          String         @default("user")
   region        String         @default("ksa")
+  // Bumped whenever the password changes. Session tokens carry the value they
+  // were issued with, so any token minted before a password change stops
+  // verifying — otherwise resetting a password (the first thing a compromised
+  // user does) left a stolen cookie valid for the rest of its 7 day life.
+  tokenVersion  Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   conversations Conversation[]

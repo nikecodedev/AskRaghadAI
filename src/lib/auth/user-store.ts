@@ -8,6 +8,7 @@ export type DbUser = {
   passwordHash: string;
   role: string;
   region: string;
+  tokenVersion: number;
 };
 
 function cuidLike() {
@@ -22,7 +23,7 @@ function firstRow<T>(rows: unknown): T | null {
 export async function findUserByEmail(email: string): Promise<DbUser | null> {
   const sql = getNeonSql();
   const rows = await sql`
-    SELECT id, email, name, "passwordHash", role, region
+    SELECT id, email, name, "passwordHash", role, region, "tokenVersion"
     FROM "User"
     WHERE email = ${email}
     LIMIT 1
@@ -33,7 +34,7 @@ export async function findUserByEmail(email: string): Promise<DbUser | null> {
 export async function findUserById(id: string): Promise<DbUser | null> {
   const sql = getNeonSql();
   const rows = await sql`
-    SELECT id, email, name, "passwordHash", role, region
+    SELECT id, email, name, "passwordHash", role, region, "tokenVersion"
     FROM "User"
     WHERE id = ${id}
     LIMIT 1
@@ -51,7 +52,7 @@ export async function createUser(input: {
   const rows = await sql`
     INSERT INTO "User" (id, email, name, "passwordHash", role, region, "createdAt", "updatedAt")
     VALUES (${id}, ${input.email}, ${input.name}, ${input.passwordHash}, 'user', 'ksa', NOW(), NOW())
-    RETURNING id, email, name, "passwordHash", role, region
+    RETURNING id, email, name, "passwordHash", role, region, "tokenVersion"
   `;
   const user = firstRow<DbUser>(rows);
   if (!user) throw new Error("Failed to create user");
@@ -62,7 +63,7 @@ export async function updateUserPassword(userId: string, passwordHash: string): 
   const sql = getNeonSql();
   await sql`
     UPDATE "User"
-    SET "passwordHash" = ${passwordHash}, "updatedAt" = NOW()
+    SET "passwordHash" = ${passwordHash}, "tokenVersion" = "tokenVersion" + 1, "updatedAt" = NOW()
     WHERE id = ${userId}
   `;
 }
