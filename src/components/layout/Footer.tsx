@@ -13,13 +13,12 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-[#ddd0b8]/50 bg-[#faf6ef]">
-      {/* Navigation gets its own line, with the copyright and update note on a
-          second line beneath it. Previously all three sat in one justified row,
-          which squeezed the links until "Contact Us" wrapped alone onto a
-          second line while the note was crushed against the copyright. This
-          also matches the legal row below, so the footer reads as one block. */}
+      {/* Navigation and the update note share one line, the note at the far
+          end. This only fits because the copyright moved down to the legal
+          row — with all three here the links were squeezed until "Contact Us"
+          wrapped alone onto a second line. */}
       <div
-        className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:py-10"
+        className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:py-10"
         style={{ direction: isAr ? "rtl" : "ltr" }}
       >
         <div className="flex flex-wrap gap-x-6 gap-y-3 text-base font-semibold">
@@ -43,9 +42,9 @@ export function Footer() {
           </Link>
         </div>
         {!hideUpdateNote ? (
-          <div className="flex sm:justify-end">
-            <p className="luxury-note max-w-xl font-medium">{messages.footer.note}</p>
-          </div>
+          <p className="luxury-note font-medium sm:text-end">
+            {messages.footer.note}
+          </p>
         ) : null}
       </div>
 
@@ -76,7 +75,9 @@ export function Footer() {
               © {new Date().getFullYear()} Askraghadai.com
             </p>
           </div>
-          <p className="max-w-4xl text-sm leading-6 text-[#5f6d63]">
+          {/* No max-width: the disclosure is one sentence and should sit on a
+              single line on desktop rather than wrapping early. */}
+          <p className="text-sm leading-6 text-[#5f6d63]">
             {messages.footer.disclosure}
           </p>
         </div>
