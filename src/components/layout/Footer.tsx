@@ -42,14 +42,11 @@ export function Footer() {
             {messages.nav.contact}
           </Link>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
-          <p className="text-base font-medium text-[#4f5f56]">
-            © {new Date().getFullYear()} Askraghadai.com
-          </p>
-          {!hideUpdateNote ? (
+        {!hideUpdateNote ? (
+          <div className="flex sm:justify-end">
             <p className="luxury-note max-w-xl font-medium">{messages.footer.note}</p>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Legal links and the affiliate disclosure sit in their own row, below
@@ -60,16 +57,24 @@ export function Footer() {
         style={{ direction: isAr ? "rtl" : "ltr" }}
       >
         <div className="mx-auto flex max-w-6xl flex-col gap-3">
-          <div className="flex flex-wrap gap-5 text-sm font-semibold">
-            <Link href="/disclaimer" className="text-[#3d4f45] hover:text-[#2c6e55]">
-              {messages.footer.disclaimer}
-            </Link>
-            <Link href="/privacy" className="text-[#3d4f45] hover:text-[#2c6e55]">
-              {messages.footer.privacy}
-            </Link>
-            <Link href="/terms" className="text-[#3d4f45] hover:text-[#2c6e55]">
-              {messages.footer.terms}
-            </Link>
+          {/* Copyright shares this line with the legal links, sitting at the
+              far end. justify-between rather than a margin so it lands on the
+              correct side in both reading directions. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+              <Link href="/disclaimer" className="text-[#3d4f45] hover:text-[#2c6e55]">
+                {messages.footer.disclaimer}
+              </Link>
+              <Link href="/privacy" className="text-[#3d4f45] hover:text-[#2c6e55]">
+                {messages.footer.privacy}
+              </Link>
+              <Link href="/terms" className="text-[#3d4f45] hover:text-[#2c6e55]">
+                {messages.footer.terms}
+              </Link>
+            </div>
+            <p className="text-sm font-medium text-[#4f5f56]">
+              © {new Date().getFullYear()} Askraghadai.com
+            </p>
           </div>
           <p className="max-w-4xl text-sm leading-6 text-[#5f6d63]">
             {messages.footer.disclosure}
