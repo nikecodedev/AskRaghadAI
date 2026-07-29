@@ -137,6 +137,7 @@ export async function POST(request: Request) {
         lookupProducts,
         image,
         history,
+        visitorCountry,
       );
       rawAnswer = result.text;
       usedProductIds = result.usedProductIds;

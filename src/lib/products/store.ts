@@ -168,17 +168,23 @@ async function fetchBundleGroup(bundleId: string) {
 }
 
 /**
- * Moves partners that serve the visitor's country to the front, and drops
- * ones that explicitly serve somewhere else — but only while something is
- * left. Geo is applied as a preference rather than a hard filter because
- * Target_Country is blank for 64 of the 164 live partners: filtering strictly
- * would hide most of the catalog from everyone. A visitor in the UAE should
- * not be sent to Noon KSA, but they should still get an answer.
+ * Removes partners that explicitly serve a different country.
+ *
+ * A hard filter, not a preference. This previously fell back to the unfiltered
+ * list whenever nothing matched, which re-admitted the very rows it had just
+ * removed — that is how a shopper in Saudi Arabia was shown Nike UAE. The
+ * client's rule is absolute: never surface another country's offer.
+ *
+ * Filtering strictly is safe because servesCountry treats a blank or wildcard
+ * Target_Country ("global", "ALL") as serving everyone, and GCC as covering
+ * all six Gulf states, so only rows scoped to other countries are dropped.
+ * Returning nothing is the correct outcome when every candidate belongs
+ * elsewhere: the caller then says it has no partner for that item, rather than
+ * sending the shopper to a store that will not ship to them.
  */
-function applyGeoPreference(products: ProductRow[], country?: string | null): ProductRow[] {
-  if (!country) return products;
-  const inRegion = products.filter((p) => servesCountry(p.targetCountries, country));
-  return inRegion.length > 0 ? inRegion : products;
+function applyGeoFilter(products: ProductRow[], country?: string | null): ProductRow[] {
+  if (!country) return products; // location unknown — never hide anything
+  return products.filter((p) => servesCountry(p.targetCountries, country));
 }
 
 /** Shoppable, ranked candidate pool for a single search phrase (one bundle "piece" or a plain query). */
@@ -219,7 +225,7 @@ async function searchProducts(
   });
   const ranked = rankByQueryRelevance(pool, expandedQuery);
   if (ranked.length > 0 || !resolvedCategory) {
-    return applyGeoPreference(ranked, country).slice(0, take);
+    return applyGeoFilter(ranked, country).slice(0, take);
   }
 
   // The category guess produced nothing, which usually means the guess itself
@@ -233,7 +239,7 @@ async function searchProducts(
     where: shoppableAnyCategory,
     orderBy: { updatedAt: "desc" },
   });
-  return applyGeoPreference(rankByQueryRelevance(widePool, expandedQuery), country).slice(0, take);
+  return applyGeoFilter(rankByQueryRelevance(widePool, expandedQuery), country).slice(0, take);
 }
 
 /**

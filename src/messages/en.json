@@ -28,7 +28,7 @@
     "taglineShort": "Ask Raghad AI – Your trusted smart guide",
     "domain": "Askraghadai.com",
     "subtitle": "Your smart guide for an exceptional experience in fashion, beauty, travel, and luxury living.",
-    "searchPlaceholder": "Ask Raghad AI...",
+    "searchPlaceholder": "Type your consultation or question in Arabic or English...",
     "searchButton": "Search",
     "cta": "Start chatting",
     "payment": "Affiliate deals",
@@ -52,8 +52,8 @@
     "bundleTotalEmpty": "Select items to see a total"
   },
   "chat": {
-    "title": "AI Assistant",
-    "placeholder": "Ask Raghad AI in Arabic or English...",
+    "title": "Raghad AI",
+    "placeholder": "Type your consultation or question in Arabic or English...",
     "welcome": "Welcome! I'm Raghad — your smart guide for fashion, beauty, skincare, and travel. Ask your question below and I'll help you find the best recommendations.",
     "send": "Send",
     "exportPdf": "Export PDF",

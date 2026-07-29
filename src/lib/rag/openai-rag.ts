@@ -245,12 +245,37 @@ export async function retrieveChunks(
   return merged.filter((r) => r.score >= MIN_CHUNK_RELEVANCE).map((r) => r.item);
 }
 
-function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
+/** Human-readable country names for the prompt, so it reads naturally. */
+const COUNTRY_NAMES: Record<string, { en: string; ar: string }> = {
+  SA: { en: "Saudi Arabia", ar: "السعودية" },
+  AE: { en: "the United Arab Emirates", ar: "الإمارات" },
+  KW: { en: "Kuwait", ar: "الكويت" },
+  QA: { en: "Qatar", ar: "قطر" },
+  BH: { en: "Bahrain", ar: "البحرين" },
+  OM: { en: "Oman", ar: "عُمان" },
+};
+
+function buildSystemPrompt(locale: "en" | "ar", category?: string, country?: string | null): string {
   const categoryHint = category
     ? locale === "ar"
       ? `\nالقسم الحالي الذي يتصفحه المستخدم: ${category}. ركّز توصياتك فيه عند المناسبة.`
       : `\nThe user is currently browsing this category: ${category}. Prioritise it where relevant.`
     : "";
+
+  // The visitor's country is detected from their IP. find_products already
+  // filters its results to partners serving that country, so this exists to
+  // stop the model bridging the gap from its own knowledge — naming a store it
+  // knows operates in a neighbouring country, or telling a Saudi shopper to
+  // use a UAE site. Only stated when detection actually succeeded; asserting a
+  // country we are not sure of would be worse than saying nothing.
+  const countryHint = (() => {
+    if (!country) return "";
+    const code = country.toUpperCase();
+    const name = COUNTRY_NAMES[code];
+    return locale === "ar"
+      ? `\nبلد المستخدم الحالي (تم تحديده تلقائياً): ${name?.ar ?? code}. رشّح فقط المتاجر والعروض المتاحة في هذا البلد أو المتاحة لدول الخليج أو عالمياً. لا تذكر أبداً متجراً أو رابطاً يخص بلداً آخر، ولا تقترح على المستخدم استخدام موقع دولة أخرى.`
+      : `\nThe user's current country, detected automatically: ${name?.en ?? code}. Only recommend stores and offers available in that country, or ones marked as GCC-wide or global. Never name a store or link belonging to a different country, and never suggest the user shop on another country's site.`;
+  })();
 
   const categoryList = CATEGORIES.map((c) => (locale === "ar" ? c.nameAr : c.nameEn)).join(locale === "ar" ? "، " : ", ");
 
@@ -296,7 +321,7 @@ function buildSystemPrompt(locale: "en" | "ar", category?: string): string {
 - Whenever you break a request into component items, call find_products for EACH component you name and place its card beneath it. This applies to outfits (dress, shoes, bag, jewellery), trips (flight, hotel, eSIM), routines (cleanser, serum, sunscreen) and any similar breakdown, and it applies even when the user's request was general ("help me plan a trip to Dubai", "put together a full outfit"). Listing the pieces as generic advice — "choose an elegant dress", "pick a stylish clutch" — without searching for any of them is exactly the failure this tool exists to prevent: it leaves the user with nothing they can act on. Describe the piece, search for it, card it, then move to the next.`;
 
   return locale === "ar"
-    ? `أنت رغد (Raghad AI) — المستشار الذكي الفاخر في Askraghadai.com. أنت خبير واثق وودود في الموضة والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر.${categoryHint}
+    ? `أنت رغد (Raghad AI) — المستشار الذكي الفاخر في Askraghadai.com. أنت خبير واثق وودود في الموضة والجمال والعناية بالبشرة والمنزل ومستلزمات الأطفال والسفر.${categoryHint}${countryHint}
 
 مهمتك: قدّم إجابة مباشرة ومفيدة وشخصية داخل المحادثة — نصائح، توصيات، خطط سفر، روتين عناية، وأفكار عملية.
 
@@ -319,7 +344,7 @@ ${cardRulesAr}
 - استخدم بدلاً منها: تأكد، احجز، اختر، تفضّل، سؤالك، عليك، يمكنك، هل تريد.
 - خاطب المستخدم بأسلوب محترم ومحايد يناسب الجميع.
 - اختتم بسؤال أو دعوة لطيفة لمواصلة المساعدة.`
-    : `You are Raghad (Raghad AI) — the luxury smart advisor at Askraghadai.com. You are a confident, warm expert in fashion, beauty, skincare, home, kids' essentials, and travel.${categoryHint}
+    : `You are Raghad (Raghad AI) — the luxury smart advisor at Askraghadai.com. You are a confident, warm expert in fashion, beauty, skincare, home, kids' essentials, and travel.${categoryHint}${countryHint}
 
 Your job: give a direct, useful, personalised answer inside the chat — advice, recommendations, travel itineraries, skincare routines, and practical ideas.
 
@@ -420,6 +445,7 @@ export async function generateAnswerWithTools(
   lookupProducts: ToolProductLookup,
   imageDataUrl?: string,
   history: ChatHistoryTurn[] = [],
+  country?: string | null,
 ): Promise<{ text: string; usedProductIds: string[] }> {
   const context = contextChunks.map((c) => c.content).join("\n\n---\n\n");
   const defaultQuery =
@@ -453,7 +479,7 @@ export async function generateAnswerWithTools(
     tool_calls?: unknown;
     tool_call_id?: string;
   }[] = [
-    { role: "system", content: buildSystemPrompt(locale, category) },
+    { role: "system", content: buildSystemPrompt(locale, category, country) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     ...(history.length > 0 ? [{ role: "system" as const, content: languageReminder }] : []),
     { role: "user", content: userContent },
